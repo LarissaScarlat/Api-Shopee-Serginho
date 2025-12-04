@@ -18,7 +18,8 @@ app.get("/", (req, res) => {
   const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
   // Link de autorização Shopee: CLIENT_ID é o da app, não PARTNER_ID
-  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+  const authUrl = `${process.env.AUTH_URL}?partner_id=${process.env.PARTNER_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
   
   console.log("🔗 Redirecionando para:", authUrl);
   res.redirect(authUrl);
