@@ -40,13 +40,13 @@ app.get("/callback", async (req, res) => {
     const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
     // Gera a assinatura HMAC (sign) exigida pela Shopee
-    const baseString = `${String(process.env.CLIENT_ID)}${String(code)}${redirectUri}`;
+    const baseString = `${String(process.env.PARTNER_ID)}${String(code)}${redirectUri}`;
     const sign = crypto.createHmac('sha256', process.env.CLIENT_SECRET)
                        .update(baseString)
                        .digest('hex');
 
     // POST para trocar code por token
-    const tokenUrl = `${process.env.TOKEN_URL}?partner_id=${process.env.CLIENT_ID}&sign=${sign}`;
+    const tokenUrl = `${process.env.TOKEN_URL}?partner_id=${process.env.PARTNER_ID}&sign=${sign}`;
 
     const data = {
       code: String(code),
