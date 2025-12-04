@@ -25,9 +25,7 @@ if (!dataInicial || !dataFinal) {
     return res.status(400).json({ error: "Parâmetros dataInicial e dataFinal são obrigatórios." });
 }
 
-// Adicione aqui o restante da lógica para buscar pedidos, por exemplo:
-// const pedidos = await buscarPedidos(dataInicial, dataFinal);
-// return res.json(pedidos);
+
 
 } catch (error) {
     console.error("Erro ao buscar pedidos:", error);
