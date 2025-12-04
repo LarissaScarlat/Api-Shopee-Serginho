@@ -15,11 +15,10 @@ app.use(express.json());
 app.get("/", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
 
-  // REDIRECT_DOMAIN deve estar no .env sem /callback
   const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
-  // Link de autorização Shopee
-  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.PARTNER_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+  // Link de autorização Shopee: CLIENT_ID é o da app, não PARTNER_ID
+  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
   
   console.log("🔗 Redirecionando para:", authUrl);
   res.redirect(authUrl);
@@ -40,21 +39,21 @@ app.get("/callback", async (req, res) => {
     const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
     // Gera a assinatura HMAC (sign) exigida pela Shopee
-    // Atenção: partner_id e shop_id como strings
     const baseString = `${String(process.env.PARTNER_ID)}${String(code)}${redirectUri}`;
     const sign = crypto.createHmac('sha256', process.env.CLIENT_SECRET)
                        .update(baseString)
                        .digest('hex');
 
+    // POST para trocar code por token
+    const tokenUrl = `${process.env.TOKEN_URL}?partner_id=${process.env.PARTNER_ID}&sign=${sign}`;
+
     const data = {
-      partner_id: String(process.env.PARTNER_ID),
       code: String(code),
       shop_id: String(shop_id),
-      redirect_uri: redirectUri,
-      sign: sign
+      redirect_uri: redirectUri
     };
 
-    const response = await axios.post(process.env.TOKEN_URL, data, {
+    const response = await axios.post(tokenUrl, data, {
       headers: { 'Content-Type': 'application/json' }
     });
 
