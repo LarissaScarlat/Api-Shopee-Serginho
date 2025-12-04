@@ -14,24 +14,25 @@ app.use(express.json());
 // Rota inicial - redireciona para autorização
 app.get("/", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
-  const redirectUri = `${process.env.REDIRECT_URI}/callback`;
+  const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`; // use REDIRECT_DOMAIN no .env
 
-  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.PARTNER_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
   
   console.log("🔗 Redirecionando para:", authUrl);
   res.redirect(authUrl);
 });
 
-// Callback - recebe code e troca por token
+// Callback - recebe code e shop_id, troca por token
 app.get("/callback", async (req, res) => {
-  const { code, state } = req.query;
+  const { code, shop_id } = req.query; // pegar shop_id do callback
 
-  if (!code) return res.status(400).send("Código de autorização ausente");
+  if (!code || !shop_id) return res.status(400).send("Faltando code ou shop_id");
 
   console.log("🔑 Código de autorização recebido:", code);
+  console.log("🏪 Shop ID recebido:", shop_id);
 
   try {
-    const redirectUri = `${process.env.REDIRECT_URI}/callback`;
+    const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
     // Gera a assinatura HMAC (sign) exigida pela Shopee
     const baseString = `${process.env.PARTNER_ID}${code}${redirectUri}`;
@@ -42,6 +43,7 @@ app.get("/callback", async (req, res) => {
     const data = {
       partner_id: process.env.PARTNER_ID,
       code: code,
+      shop_id: shop_id, // incluir shop_id
       redirect_uri: redirectUri,
       sign: sign
     };
@@ -71,3 +73,4 @@ app.get("/callback", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
+
