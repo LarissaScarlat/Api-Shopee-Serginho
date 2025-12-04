@@ -5,10 +5,7 @@ import qs from "querystring";
 import crypto from "crypto";
 import fs from "fs";
 import cors from "cors";
-import { getAccessToken } from "./RenovaTokens.js";
-import { createClient } from '@supabase/supabase-js';
-import PedidosVendasRouter from './BuscarPedidos.js';
-import SupabaseRouter from './Supabase.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
