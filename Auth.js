@@ -14,8 +14,11 @@ app.use(express.json());
 // Rota inicial - redireciona para autorização
 app.get("/", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
-  const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`; // use REDIRECT_DOMAIN no .env
 
+  // REDIRECT_DOMAIN deve estar no .env sem /callback
+  const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
+
+  // Link de autorização Shopee
   const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.PARTNER_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
   
   console.log("🔗 Redirecionando para:", authUrl);
@@ -24,9 +27,11 @@ app.get("/", (req, res) => {
 
 // Callback - recebe code e shop_id, troca por token
 app.get("/callback", async (req, res) => {
-  const { code, shop_id } = req.query; // pegar shop_id do callback
+  const { code, shop_id } = req.query;
 
-  if (!code || !shop_id) return res.status(400).send("Faltando code ou shop_id");
+  if (!code || !shop_id) {
+    return res.status(400).send("Faltando code ou shop_id");
+  }
 
   console.log("🔑 Código de autorização recebido:", code);
   console.log("🏪 Shop ID recebido:", shop_id);
@@ -35,15 +40,16 @@ app.get("/callback", async (req, res) => {
     const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
 
     // Gera a assinatura HMAC (sign) exigida pela Shopee
-    const baseString = `${process.env.PARTNER_ID}${code}${redirectUri}`;
+    // Atenção: partner_id e shop_id como strings
+    const baseString = `${String(process.env.PARTNER_ID)}${String(code)}${redirectUri}`;
     const sign = crypto.createHmac('sha256', process.env.CLIENT_SECRET)
                        .update(baseString)
                        .digest('hex');
 
     const data = {
-      partner_id: process.env.PARTNER_ID,
-      code: code,
-      shop_id: shop_id, // incluir shop_id
+      partner_id: String(process.env.PARTNER_ID),
+      code: String(code),
+      shop_id: String(shop_id),
       redirect_uri: redirectUri,
       sign: sign
     };
