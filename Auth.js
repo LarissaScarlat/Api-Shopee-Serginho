@@ -15,10 +15,16 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
-  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${process.env.REDIRECT_URI}&state=${state}`;
+
+  // Combina o domínio registrado + callback
+  const redirectUri = `${process.env.REDIRECT_DOMAIN}/callback`;
+
+  const authUrl = `${process.env.AUTH_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
   console.log("🔗 Redirecionando para:", authUrl);
   res.redirect(authUrl);
-}); 
+});
+
 
 app.get("/callback", async (req, res) => {
     const {code, state} = req.query;
