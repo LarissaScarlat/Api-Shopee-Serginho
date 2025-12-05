@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 const router = express.Router();
 
+
 // Para capturar o RAW body da requisição
 router.use(express.json({
   verify: (req, res, buf) => {

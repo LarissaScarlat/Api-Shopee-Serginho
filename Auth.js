@@ -7,6 +7,15 @@ import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
 
+
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    }
+  })
+);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
