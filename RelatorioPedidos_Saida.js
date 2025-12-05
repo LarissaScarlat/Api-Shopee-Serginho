@@ -103,7 +103,7 @@ async function saveOrder(order) {
 /* ============================================================
    ROTA PRINCIPAL DO WEBHOOK SHOPEE
 ============================================================ */
-router.post("/", async (req, res) => {
+router.post("/notificacoes-shopee", async (req, res) => {
   try {
     const body = req.body;
 
