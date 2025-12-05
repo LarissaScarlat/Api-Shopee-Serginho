@@ -19,13 +19,13 @@ const router = express.Router();
 router.get("/RelatorioPedidos", async (req, res) => {
     try {
         const { dataInicial, dataFinal, status_do_pedido = 4 } = req.query; 
-        // 4 = COMPLETED (pedidos concluídos)
+        
 
         if (!dataInicial || !dataFinal) {
             return res.status(400).json({ error: "Parâmetros dataInicial e dataFinal são obrigatórios." });
         }
 
-        // Converter para timestamps UNIX em segundos
+        
         const time_from = Math.floor(new Date(dataInicial).getTime() / 1000);
         const time_to = Math.floor(new Date(dataFinal).getTime() / 1000);
 
@@ -40,7 +40,7 @@ router.get("/RelatorioPedidos", async (req, res) => {
                 order_status: status_do_pedido
             },
             headers: {
-                // coloque aqui seus headers obrigatórios da Shopee (authorization)
+                "Content-Type": "application/json"
             }
         });
 
