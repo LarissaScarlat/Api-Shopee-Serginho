@@ -3,40 +3,44 @@ import crypto from "crypto";
 
 const router = express.Router();
 
+// Necessário para capturar o RAW BODY da Shopee
+router.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
+
 router.post("/", async (req, res) => {
   try {
-    const rawBody = req.rawBody;
-    const receivedSignature = req.headers["x-shopee-signature"];
-    const timestamp = req.headers["x-shopee-timestamp"];
+    const rawBody = req.rawBody;         // Obrigatório
+    const receivedSignature = req.headers["authorization"];
     const partnerKey = process.env.PARTNER_KEY;
 
-    const path = "/notificacoes-shopee"; // o mesmo cadastrado na Shopee!
-
-    console.log(">> Body recebido:", rawBody);
-    console.log(">> Assinatura recebida:", receivedSignature);
-
-    // Verificação especial de webhook
-    if (req.body?.data?.verify_info) {
-      console.log("🔍 Webhook de verificação recebido!");
-      return res.status(200).json({
-        code: 0,
-        message: "success"
-      });
-    }
-
-    // Calcula a assinatura correta Shopee v2
-    const baseString = `${process.env.PARTNER_ID}${path}${timestamp}${rawBody}`;
+    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
+    const baseString = `${webhookUrl}|${rawBody}`;
 
     const calculatedSignature = crypto
       .createHmac("sha256", partnerKey)
       .update(baseString)
       .digest("hex");
 
+    console.log(">> Body recebido:", rawBody);
+    console.log(">> Assinatura recebida:", receivedSignature);
     console.log(">> Assinatura calculada:", calculatedSignature);
 
-    // Validação
+    const body = JSON.parse(rawBody || "{}");
+
+    // 🔥 1️⃣ Webhook de verificação (sem assinatura)
+    if (body.code === 0 && body.data?.verify_info) {
+      console.log("🔍 Webhook de verificação recebido.");
+      return res.status(200).json({
+        code: 0,
+        message: "success"
+      });
+    }
+
+    // 🔥 2️⃣ Validação real
     if (receivedSignature !== calculatedSignature) {
-      console.log("❌ Assinatura inválida!");
       return res.status(401).json({ error: "Assinatura inválida!" });
     }
 
@@ -50,4 +54,3 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
-
