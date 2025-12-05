@@ -17,7 +17,8 @@ router.post("/", async (req, res) => {
     const partnerKey = process.env.PARTNER_KEY;
 
     const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
-    const baseString = `${webhookUrl}|${rawBody}`;
+    const baseString = rawBody;
+
 
     const calculatedSignature = crypto
       .createHmac("sha256", partnerKey)
