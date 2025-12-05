@@ -40,12 +40,12 @@ async function getOrderDetail(order_sn) {
 }
 
 
-// === SALVAR NO SUPABASE SEM DUPLICAR ===
 async function saveOrder(order) {
   const order_sn = order.order_sn;
 
+  // Verifica se já existe no Supabase
   const { data: exists } = await supabase
-    .from("orders")
+    .from("shopee_orders")
     .select("order_sn")
     .eq("order_sn", order_sn)
     .maybeSingle();
@@ -55,17 +55,22 @@ async function saveOrder(order) {
     return;
   }
 
-  await supabase.from("orders").insert({
+  // Coleta o item principal (Shopee retorna lista)
+  const firstItem = order.item_list?.[0] || {};
+
+  await supabase.from("shopee_orders").insert({
     order_sn: order.order_sn,
+    order_date: order.create_time ? new Date(order.create_time * 1000) : null,
     status: order.order_status,
-    buyer: order.buyer_username,
-    total: order.total_amount,
-    items: order.item_list,
-    address: order.recipient_address
+    plataforma: "Shopee", // já é default, mas manter não tem problema
+    deposito: order.warehouse_code || null,
+    sku: firstItem.model_sku || firstItem.item_sku || null,
+    titulo_anuncio: firstItem.item_name || null
   });
 
   console.log(`✅ Pedido ${order_sn} salvo no Supabase!`);
 }
+
 
 
 
