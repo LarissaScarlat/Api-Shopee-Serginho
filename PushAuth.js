@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 const router = express.Router();
 
-// Necessário para capturar o RAW BODY da Shopee
+// Captura RAW BODY
 router.use(express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf.toString();
@@ -12,36 +12,30 @@ router.use(express.json({
 
 router.post("/", async (req, res) => {
   try {
-    const rawBody = req.rawBody;         // Obrigatório
-    const receivedSignature = req.headers["authorization"];
+    const rawBody = req.rawBody;
+    const body = req.body; // já parseado automaticamente
+
     const partnerKey = process.env.PARTNER_KEY;
 
-    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
-    const baseString = rawBody;
+    // 👇 Agora pegamos a assinatura correta
+    const receivedSignature = body.sign;
 
-
-        const calculatedSignature = crypto
+    // Shopee Webhook = HMAC_SHA256(rawBody)
+    const calculatedSignature = crypto
       .createHmac("sha256", partnerKey)
       .update(rawBody)
       .digest("hex");
-
 
     console.log(">> Body recebido:", rawBody);
     console.log(">> Assinatura recebida:", receivedSignature);
     console.log(">> Assinatura calculada:", calculatedSignature);
 
-    const body = JSON.parse(rawBody || "{}");
-
-    // 🔥 1️⃣ Webhook de verificação (sem assinatura)
+    // 1️⃣ Webhook de verificação
     if (body.code === 0 && body.data?.verify_info) {
-      console.log("🔍 Webhook de verificação recebido.");
-      return res.status(200).json({
-        code: 0,
-        message: "success"
-      });
+      return res.status(200).json({ code: 0, message: "success" });
     }
 
-    // 🔥 2️⃣ Validação real
+    // 2️⃣ Validação real da assinatura
     if (receivedSignature !== calculatedSignature) {
       return res.status(401).json({ error: "Assinatura inválida!" });
     }
@@ -56,3 +50,4 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
+
