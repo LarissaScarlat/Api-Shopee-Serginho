@@ -3,55 +3,38 @@ import crypto from "crypto";
 
 const router = express.Router();
 
+router.post("/", (req, res) => {
+  const rawBody = req.rawBody; // Corpo cru
+  const receivedSignature = req.headers["authorization"];
+  const partnerKey = process.env.PARTNER_KEY;
+  const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
 
-// Para capturar o RAW body da requisição
-router.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString(); // Guarda o corpo sem parse
-  }
-}));
+  console.log(">> Body RAW:", rawBody);
 
-router.post("/notificacoes-shopee", async (req, res) => {
-  try {
-    const rawBody = req.rawBody;
-    const receivedSignature = req.headers["authorization"]; // assinatura da Shopee
-
-    const partnerKey = process.env.PARTNER_KEY;
-    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee"; // exatamente como cadastrado
-
-    // 🔥 Montar baseString da Shopee
-    const baseString = webhookUrl + "|" + rawBody;
-
-    // 🔥 Gerar assinatura local
-    const calculatedSignature = crypto
-      .createHmac("sha256", partnerKey)
-      .update(baseString)
-      .digest("hex");
-
-    console.log(">> Body recebido:", rawBody);
-    console.log(">> Assinatura recebida:", receivedSignature);
-    console.log(">> Assinatura calculada:", calculatedSignature);
-
-    // 🎯 Validar assinatura
-    if (receivedSignature !== calculatedSignature) {
-      return res.status(401).json({ error: "Assinatura inválida!" });
-    }
-
-    console.log("🔐 Assinatura validada! Push é seguro.");
-
-    // Agora você pode tratar o evento normalmente
-    const data = req.body;
-
-    // Exemplos:
-    // if (data.code === 1 && data.data.order_sn) { ... }
-    // if (data.code === 2 && data.data.tracking_no) { ... }
-
+  // A Shopee NÃO envia assinatura durante o teste automático
+  if (!receivedSignature) {
+    console.log(">> Teste de verificação da Shopee recebido.");
     return res.status(200).json({ message: "OK" });
-
-  } catch (err) {
-    console.error("Erro no webhook Shopee:", err);
-    return res.status(500).json({ error: "Erro interno no webhook" });
   }
+
+  const baseString = webhookUrl + "|" + rawBody;
+
+  const generatedSign = crypto
+    .createHmac("sha256", partnerKey)
+    .update(baseString)
+    .digest("hex");
+
+  console.log(">> Assinatura recebida:", receivedSignature);
+  console.log(">> Assinatura calculada:", generatedSign);
+
+  if (receivedSignature !== generatedSign) {
+    return res.status(401).json({ error: "Assinatura inválida" });
+  }
+
+  console.log(">> Notificação válida recebida:", req.body);
+
+  return res.status(200).json({ message: "OK" });
 });
 
 export default router;
+
