@@ -41,12 +41,14 @@ const partner_key = process.env.PARTNER_KEY;
       order_sn_list: [order_sn],
       response_optional_fields: "recipient_address,item_list,payment_method"
     };
+const response = await axios.post(url, body);
 
-    const response = await axios.post(url, body);
+// 👇 ADICIONE ESTA LINHA AQUI
+console.log("🔍 RETORNO DA SHOPEE:", JSON.stringify(response.data, null, 2));
 
-    return response.data.response.order_list?.[0] || null;
+return response.data.response?.order_list?.[0] || null;
   } catch (err) {
-    console.error("❌ Erro ao consultar detalhes do pedido:", err);
+    console.error("❌ Erro ao buscar detalhes:", err);
     return null;
   }
 }
@@ -111,14 +113,7 @@ router.post("/notificacoes-shopee", async (req, res) => {
     console.log("====================================================");
     console.log("📩 Webhook recebido:", JSON.stringify(body));
 
-    /* ----------------------------------------------------
-       NORMALIZA order_sn
-       Pode vir como: ordersn, order_sn ou order_sn_list
-    ---------------------------------------------------- */
-    // ----------------------------------------------------
-// NORMALIZA order_sn
-// Shopee pode enviar: ordersn, order_sn, order_sn_list
-// ----------------------------------------------------
+   
 let order_sn = null;
 
 // Caso mais comum
