@@ -20,10 +20,11 @@ router.post("/", async (req, res) => {
     const baseString = rawBody;
 
 
-    const calculatedSignature = crypto
+        const calculatedSignature = crypto
       .createHmac("sha256", partnerKey)
-      .update(baseString)
+      .update(rawBody)
       .digest("hex");
+
 
     console.log(">> Body recebido:", rawBody);
     console.log(">> Assinatura recebida:", receivedSignature);
