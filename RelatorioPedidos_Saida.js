@@ -69,23 +69,29 @@ async function saveOrder(order) {
     titulo_anuncio: firstItem.item_name || null
   };
 
-  // SE NÃO EXISTE → INSERE
-  if (!existing) {
-    await supabase.from("shopee_orders").insert(row);
+  /// SE NÃO EXISTE → INSERE
+if (!existing) {
+  const { error } = await supabase.from("shopee_orders").insert(row);
+  if (error) {
+    console.error("❌ Erro ao inserir no Supabase:", error);
+  } else {
     console.log(`🟩 Novo pedido inserido: ${order_sn}`);
-    return;
   }
-
-  // SE EXISTE → ATUALIZA
-  await supabase
-    .from("shopee_orders")
-    .update(row)
-    .eq("order_sn", order_sn);
-
-  console.log(`🔄 Pedido atualizado: ${order_sn} → ${order.order_status}`);
+  return;
 }
 
+// SE EXISTE → ATUALIZA
+const { error } = await supabase
+  .from("shopee_orders")
+  .update(row)
+  .eq("order_sn", order_sn);
 
+if (error) {
+  console.error("❌ Erro ao atualizar no Supabase:", error);
+} else {
+  console.log(`🔄 Pedido atualizado: ${order_sn} → ${order.order_status}`);
+}
+}
 
 // ======================================================
 //  ROTA PRINCIPAL DE WEBHOOK
