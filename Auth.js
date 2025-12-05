@@ -8,6 +8,14 @@ import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
 
 
+
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
 app.use(
   express.json({
     verify: (req, res, buf) => {
@@ -16,11 +24,7 @@ app.use(
   })
 );
 
-const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
 
 /**
  * Função para gerar assinatura Shopee v2
