@@ -7,15 +7,12 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const rawBody = req.rawBody;
-    const receivedSignature = req.headers["authorization"]; // assinatura da Shopee
-
+    const receivedSignature = req.headers["authorization"];
     const partnerKey = process.env.PARTNER_KEY;
-    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee"; // exatamente como cadastrado
 
-    // 🔥 Montar baseString da Shopee
-    const baseString = webhookUrl + "|" + rawBody;
+    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
+    const baseString = `${webhookUrl}|${rawBody}`;
 
-    // 🔥 Gerar assinatura local
     const calculatedSignature = crypto
       .createHmac("sha256", partnerKey)
       .update(baseString)
@@ -25,20 +22,23 @@ router.post("/", async (req, res) => {
     console.log(">> Assinatura recebida:", receivedSignature);
     console.log(">> Assinatura calculada:", calculatedSignature);
 
-    // 🎯 Validar assinatura
+    const body = req.body;
+
+    // 🔥 1️⃣ CASO ESPECIAL — VERIFICAÇÃO DE WEBHOOK
+    if (body.code === 0 && body.data?.verify_info) {
+      console.log("🔍 Webhook de verificação recebido. Respondendo formato exigido.");
+      return res.status(200).json({
+        code: 0,
+        message: "success"
+      });
+    }
+
+    // 🔥 2️⃣ Webhooks reais → validar assinatura
     if (receivedSignature !== calculatedSignature) {
       return res.status(401).json({ error: "Assinatura inválida!" });
     }
 
     console.log("🔐 Assinatura validada! Push é seguro.");
-
-    // Agora você pode tratar o evento normalmente
-    const data = req.body;
-
-    // Exemplos:
-    // if (data.code === 1 && data.data.order_sn) { ... }
-    // if (data.code === 2 && data.data.tracking_no) { ... }
-
     return res.status(200).json({ message: "OK" });
 
   } catch (err) {
