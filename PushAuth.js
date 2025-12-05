@@ -1,9 +1,7 @@
 import express from "express";
-import crypto from "crypto";
 
 const router = express.Router();
 
-// Captura RAW BODY
 router.use(express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf.toString();
@@ -12,35 +10,14 @@ router.use(express.json({
 
 router.post("/", async (req, res) => {
   try {
-    const rawBody = req.rawBody;
-    const body = req.body; // já parseado automaticamente
+    console.log(">> Body recebido:", req.rawBody);
 
-    const partnerKey = process.env.PARTNER_KEY;
+    const body = req.body;
 
-    // 👇 Agora pegamos a assinatura correta
-    const receivedSignature = body.sign;
+    // Aqui você já pode processar o pedido no banco
+    // exemplo:
+    // await gravaPedidoSupabase(body);
 
-    // Shopee Webhook = HMAC_SHA256(rawBody)
-    const calculatedSignature = crypto
-      .createHmac("sha256", partnerKey)
-      .update(rawBody)
-      .digest("hex");
-
-    console.log(">> Body recebido:", rawBody);
-    console.log(">> Assinatura recebida:", receivedSignature);
-    console.log(">> Assinatura calculada:", calculatedSignature);
-
-    // 1️⃣ Webhook de verificação
-    if (body.code === 0 && body.data?.verify_info) {
-      return res.status(200).json({ code: 0, message: "success" });
-    }
-
-    // 2️⃣ Validação real da assinatura
-    if (receivedSignature !== calculatedSignature) {
-      return res.status(401).json({ error: "Assinatura inválida!" });
-    }
-
-    console.log("🔐 Assinatura validada!");
     return res.status(200).json({ message: "OK" });
 
   } catch (err) {
