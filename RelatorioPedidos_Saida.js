@@ -4,7 +4,7 @@ import crypto from "crypto";
 import axios from "axios";
 import fs from "fs";
 import { supabase } from "./supabase.js";
-import { createClient } from '@supabase/supabase-js'
+
 
 const router = express.Router();
 
