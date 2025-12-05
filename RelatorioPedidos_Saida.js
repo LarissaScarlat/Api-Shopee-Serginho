@@ -2,12 +2,15 @@
 import express from "express";
 import axios from "axios";
 import fs from "fs";
+import crypto from "crypto";
 import { supabase } from "./Supabase.js";
 
 const router = express.Router();
 
 
-// === BUSCA DETALHE DO PEDIDO ===
+// ======================================================
+//  BUSCA DETALHES DO PEDIDO NA SHOPEE
+// ======================================================
 async function getOrderDetail(order_sn) {
   const t = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
@@ -36,14 +39,18 @@ async function getOrderDetail(order_sn) {
   };
 
   const response = await axios.post(url, body);
-  return response.data.response.order_list[0];
+
+  return response.data.response.order_list[0] || null;
 }
 
 
+
+// ======================================================
+//  INSERE OU ATUALIZA PEDIDO NO SUPABASE
+// ======================================================
 async function saveOrder(order) {
   const order_sn = order.order_sn;
 
-  // Verifica se já existe
   const { data: existing } = await supabase
     .from("shopee_orders")
     .select("*")
@@ -62,19 +69,14 @@ async function saveOrder(order) {
     titulo_anuncio: firstItem.item_name || null
   };
 
-  // -----------------------------------------
-  // 1. SE NÃO EXISTE → INSERE
-  // -----------------------------------------
+  // SE NÃO EXISTE → INSERE
   if (!existing) {
     await supabase.from("shopee_orders").insert(row);
     console.log(`🟩 Novo pedido inserido: ${order_sn}`);
     return;
   }
 
-  // -----------------------------------------
-  // 2. SE EXISTE → ATUALIZA STATUS E ITENS
-  // (não cria duplicidade)
-  // -----------------------------------------
+  // SE EXISTE → ATUALIZA
   await supabase
     .from("shopee_orders")
     .update(row)
@@ -84,32 +86,60 @@ async function saveOrder(order) {
 }
 
 
-// === ROTAS (APENAS PROCESSA) ===
+
+// ======================================================
+//  ROTA PRINCIPAL DE WEBHOOK
+// ======================================================
 router.post("/", async (req, res) => {
   try {
-    const body = req.body;  // já validado pelo outro arquivo
+    const body = req.body;
 
-    // SHOPEE ENVIA: code 1 (pedido atualizado)
+    console.log(">> Body recebido:", JSON.stringify(body));
+
+    // ==============================================
+    // PROCESSA PEDIDOS (code 1)
+    // ==============================================
     if (body.code === 1 && body.data?.order_sn_list) {
       for (const order_sn of body.data.order_sn_list) {
-        console.log("📦 Processando pedido:", order_sn);
+        console.log("📦 Processando pedido (code 1):", order_sn);
 
         const detail = await getOrderDetail(order_sn);
         if (detail) await saveOrder(detail);
       }
 
-      return res.status(200).json({ message: "Pedidos processados" });
+      return res.status(200).json({ message: "Pedidos processados (code 1)" });
     }
 
+
+    // ==============================================
+    // PROCESSA LOGÍSTICA (code 30)
+    // ==============================================
+    if (body.code === 30 && body.data?.ordersn) {
+      const order_sn = body.data.ordersn;
+      const logStatus = body.data.fulfillment_status;
+
+      console.log(`🚚 Atualização logística (code 30): ${order_sn} → ${logStatus}`);
+
+      const detail = await getOrderDetail(order_sn);
+      if (detail) await saveOrder(detail);
+
+      return res.status(200).json({ message: "Logística processada (code 30)" });
+    }
+
+
+    // ==============================================
+    // SEM AÇÃO
+    // ==============================================
     return res.status(200).json({ message: "Nada para fazer" });
 
   } catch (err) {
-    console.error("Erro ao processar pedidos:", err);
+    console.error("❌ Erro ao processar webhook:", err);
     return res.status(500).json({ error: "Erro interno" });
   }
 });
 
 export default router;
+
 
 
 
