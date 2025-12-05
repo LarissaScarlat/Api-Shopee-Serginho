@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import axios from 'axios';
-import 'dotenv/config';
+
 
 
 function readTokens() {
