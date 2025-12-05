@@ -1,22 +1,13 @@
 // PushPedidos.js
 import express from "express";
-import crypto from "crypto";
 import axios from "axios";
 import fs from "fs";
 import { supabase } from "./Supabase.js";
 
-
 const router = express.Router();
 
-// Capturar RAW BODY (necessário para validar a assinatura)
-router.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
-}));
 
-
-// Função para buscar detalhes do pedido
+// === BUSCA DETALHE DO PEDIDO ===
 async function getOrderDetail(order_sn) {
   const t = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
@@ -44,15 +35,12 @@ async function getOrderDetail(order_sn) {
     response_optional_fields: "recipient_address,item_list,payment_method"
   };
 
-  const response = await axios.post(url, body, {
-    headers: { "Content-Type": "application/json" }
-  });
-
+  const response = await axios.post(url, body);
   return response.data.response.order_list[0];
 }
 
 
-// Função para gravar sem duplicidade
+// === SALVAR NO SUPABASE SEM DUPLICAR ===
 async function saveOrder(order) {
   const order_sn = order.order_sn;
 
@@ -81,62 +69,32 @@ async function saveOrder(order) {
 
 
 
-// Webhook principal
+// === ROTAS (APENAS PROCESSA) ===
 router.post("/", async (req, res) => {
   try {
-    const rawBody = req.rawBody;
-    const receivedSignature = req.headers["authorization"];
-    const partnerKey = process.env.PARTNER_KEY;
+    const body = req.body;  // já validado pelo outro arquivo
 
-    const webhookUrl = "https://api-shopee-serginho.onrender.com/notificacoes-shopee";
-
-    // Assinatura da Shopee: url + "|" + body
-    const baseString = webhookUrl + "|" + rawBody;
-
-    const calculatedSignature = crypto
-      .createHmac("sha256", partnerKey)
-      .update(baseString)
-      .digest("hex");
-
-    console.log("Body recebido:", rawBody);
-    console.log("Assinatura recebida:", receivedSignature);
-    console.log("Assinatura calculada:", calculatedSignature);
-
-    if (receivedSignature !== calculatedSignature) {
-      return res.status(401).json({ error: "Assinatura inválida!" });
-    }
-
-    const body = JSON.parse(rawBody);
-
-    // SHOPEE TESTE DE VERIFICAÇÃO
-    if (body?.code === 0) {
-      console.log("Teste de verificação recebido.");
-      return res.status(200).json({ msg: "OK" });
-    }
-
-    // RECEBE PEDIDOS DE FATO
+    // SHOPEE ENVIA: code 1 (pedido atualizado)
     if (body.code === 1 && body.data?.order_sn_list) {
       for (const order_sn of body.data.order_sn_list) {
-        console.log("📦 Recebendo pedido:", order_sn);
+        console.log("📦 Processando pedido:", order_sn);
 
         const detail = await getOrderDetail(order_sn);
-
-        if (detail) {
-          await saveOrder(detail);
-        }
+        if (detail) await saveOrder(detail);
       }
 
       return res.status(200).json({ message: "Pedidos processados" });
     }
 
-    return res.status(200).json({ message: "Ignorado" });
+    return res.status(200).json({ message: "Nada para fazer" });
 
   } catch (err) {
-    console.error("Erro no webhook:", err);
+    console.error("Erro ao processar pedidos:", err);
     return res.status(500).json({ error: "Erro interno" });
   }
 });
 
 export default router;
+
 
 
