@@ -114,18 +114,39 @@ router.post("/notificacoes-shopee", async (req, res) => {
        NORMALIZA order_sn
        Pode vir como: ordersn, order_sn ou order_sn_list
     ---------------------------------------------------- */
-    const order_sn =
-      body.data?.ordersn ||
-      body.data?.order_sn ||
-      body.data?.order_sn_list?.[0] ||
-      null;
+    // ----------------------------------------------------
+// NORMALIZA order_sn
+// Shopee pode enviar: ordersn, order_sn, order_sn_list
+// ----------------------------------------------------
+let order_sn = null;
 
-    if (!order_sn) {
-      console.log("⚠️ Webhook ignorado — não contém order_sn");
-      return res.status(200).json({ message: "ignorado" });
-    }
+// Caso mais comum
+if (body.data?.ordersn) {
+  order_sn = body.data.ordersn;
+}
 
-    console.log(`🔎 Pedido detectado: ${order_sn} (code ${body.code})`);
+// Alternativa em alguns eventos
+else if (body.data?.order_sn) {
+  order_sn = body.data.order_sn;
+}
+
+// Quando vem lista
+else if (Array.isArray(body.data?.order_sn_list) && body.data.order_sn_list.length > 0) {
+  order_sn = body.data.order_sn_list[0];
+}
+
+// Quando vem no body raiz (alguns webhooks antigos da Shopee)
+else if (body.ordersn) {
+  order_sn = body.ordersn;
+}
+
+if (!order_sn) {
+  console.log("⚠️ Webhook ignorado — não contém order_sn");
+  return res.status(200).json({ message: "ignorado" });
+}
+
+console.log(`🔎 Pedido detectado: ${order_sn} (code ${body.code})`);
+
 
     /* ----------------------------------------------------
        BUSCA DETALHES COMPLETOS NA API
