@@ -43,35 +43,45 @@ async function getOrderDetail(order_sn) {
 async function saveOrder(order) {
   const order_sn = order.order_sn;
 
-  // Verifica se já existe no Supabase
-  const { data: exists } = await supabase
+  // Verifica se já existe
+  const { data: existing } = await supabase
     .from("shopee_orders")
-    .select("order_sn")
+    .select("*")
     .eq("order_sn", order_sn)
     .maybeSingle();
 
-  if (exists) {
-    console.log(`⚠️ Pedido ${order_sn} já existe. Pulando.`);
-    return;
-  }
-
-  // Coleta o item principal (Shopee retorna lista)
   const firstItem = order.item_list?.[0] || {};
 
-  await supabase.from("shopee_orders").insert({
+  const row = {
     order_sn: order.order_sn,
     order_date: order.create_time ? new Date(order.create_time * 1000) : null,
     status: order.order_status,
-    plataforma: "Shopee", // já é default, mas manter não tem problema
+    plataforma: "Shopee",
     deposito: order.warehouse_code || null,
     sku: firstItem.model_sku || firstItem.item_sku || null,
     titulo_anuncio: firstItem.item_name || null
-  });
+  };
 
-  console.log(`✅ Pedido ${order_sn} salvo no Supabase!`);
+  // -----------------------------------------
+  // 1. SE NÃO EXISTE → INSERE
+  // -----------------------------------------
+  if (!existing) {
+    await supabase.from("shopee_orders").insert(row);
+    console.log(`🟩 Novo pedido inserido: ${order_sn}`);
+    return;
+  }
+
+  // -----------------------------------------
+  // 2. SE EXISTE → ATUALIZA STATUS E ITENS
+  // (não cria duplicidade)
+  // -----------------------------------------
+  await supabase
+    .from("shopee_orders")
+    .update(row)
+    .eq("order_sn", order_sn);
+
+  console.log(`🔄 Pedido atualizado: ${order_sn} → ${order.order_status}`);
 }
-
-
 
 
 // === ROTAS (APENAS PROCESSA) ===
