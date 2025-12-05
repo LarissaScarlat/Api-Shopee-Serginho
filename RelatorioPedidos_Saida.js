@@ -40,13 +40,19 @@ router.get("/RelatorioPedidos", async (req, res) => {
     }
 
     const tokens = readTokens();
-
     if (!tokens) {
-      return res.status(500).json({ error: "Tokens não encontrados." });
+      return res.status(500).json({ error: "tokens.json não encontrado." });
     }
 
-    const accessToken = tokens.access_token;
-    const shopId = tokens.shop_id;
+    // 🔥 Ajustado para o formato do seu JSON
+    const accessToken = tokens.token_de_acesso; 
+    const shopId = tokens.shop_id_list?.[0];
+
+    if (!accessToken || !shopId) {
+      return res.status(500).json({
+        error: "Access Token ou Shop ID não encontrado em tokens.json"
+      });
+    }
 
     const time_from = Math.floor(new Date(dataInicial).getTime() / 1000);
     const time_to = Math.floor(new Date(dataFinal).getTime() / 1000);
@@ -87,3 +93,4 @@ router.get("/RelatorioPedidos", async (req, res) => {
 });
 
 export default router;
+
