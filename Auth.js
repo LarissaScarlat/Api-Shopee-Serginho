@@ -4,6 +4,7 @@ import axios from "axios";
 import crypto from "crypto";
 import fs from "fs";
 import cors from "cors";
+import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,9 +103,11 @@ app.get("/callback", async (req, res) => {
   }
 });
 
-/**
- * ⚙️ Servidor
- */
+app.use("/", RouterRelatorio);
+
+
+
+
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
