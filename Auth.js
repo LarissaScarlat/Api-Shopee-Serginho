@@ -98,7 +98,7 @@ app.get("/callback", async (req, res) => {
 
     console.log("🔐 Token recebido:", tokenData);
 
-    fs.writeFileSync("tokens.json", JSON.stringify(tokenData, null, 2));
+  fs.writeFileSync("tokens.json", JSON.stringify(tokenData.tokens, null, 2));
     console.log("💾 Tokens salvos em tokens.json");
 
     res.json({
