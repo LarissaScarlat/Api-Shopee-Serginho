@@ -6,7 +6,7 @@ import fs from "fs";
 import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
-
+import { createClient } from '@supabase/supabase-js'
 
 
 
