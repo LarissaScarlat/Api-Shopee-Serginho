@@ -116,6 +116,7 @@ app.get("/callback", async (req, res) => {
 
 app.use("/", RouterRelatorio);
 app.use("/notificacoes-shopee", RouterPush);
+app.use("/",RouterRelatorio)
 
 
 
