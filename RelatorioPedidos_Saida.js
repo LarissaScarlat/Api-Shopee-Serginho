@@ -12,18 +12,19 @@ const router = express.Router();
 ============================================================ */
 async function getOrderDetail(order_sn) {
   try {
-  const t = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+    const tok = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
-const partner_id = Number(process.env.PARTNER_ID);
-const shop_id = t.shop_id;            // 👈 aqui o ajuste real
-const access_token = t.access_token;  // 👈 ok
-const partner_key = process.env.PARTNER_KEY;
-
+    const partner_id = Number(process.env.PARTNER_ID);
+    const shop_id = tok.shop_id_list[0];        // 👈 CORRETO
+    const access_token = tok.access_token;      // 👈 CORRETO
+    const partner_key = process.env.PARTNER_KEY;
 
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
+    const baseString =
+      `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
+
     const sign = crypto
       .createHmac("sha256", partner_key)
       .update(baseString)
@@ -41,65 +42,16 @@ const partner_key = process.env.PARTNER_KEY;
       order_sn_list: [order_sn],
       response_optional_fields: "recipient_address,item_list,payment_method"
     };
-const response = await axios.post(url, body);
 
-// 👇 ADICIONE ESTA LINHA AQUI
-console.log("🔍 RETORNO DA SHOPEE:", JSON.stringify(response.data, null, 2));
+    const response = await axios.post(url, body);
 
-return response.data.response?.order_list?.[0] || null;
+    // Debug para ver resposta real da Shopee
+    console.log("🔍 RETORNO DA SHOPEE:", JSON.stringify(response.data, null, 2));
+
+    return response.data.response?.order_list?.[0] || null;
   } catch (err) {
-    console.error("❌ Erro ao buscar detalhes:", err);
+    console.error("❌ Erro ao consultar detalhes do pedido:", err);
     return null;
-  }
-}
-
-/* ============================================================
-   INSERE OU ATUALIZA PEDIDO NO SUPABASE
-============================================================ */
-async function saveOrder(order) {
-  try {
-    const order_sn = order.order_sn;
-
-    const { data: existing } = await supabase
-      .from("shopee_orders")
-      .select("*")
-      .eq("order_sn", order_sn)
-      .maybeSingle();
-
-    const firstItem = order.item_list?.[0] || {};
-
-    const row = {
-      order_sn: order.order_sn,
-      order_date: order.create_time ? new Date(order.create_time * 1000) : null,
-      status: order.order_status,
-      plataforma: "Shopee",
-      deposito: order.warehouse_code || null,
-      sku: firstItem.model_sku || firstItem.item_sku || null,
-      titulo_anuncio: firstItem.item_name || null
-    };
-
-    if (!existing) {
-      const { error } = await supabase.from("shopee_orders").insert(row);
-      if (error) {
-        console.error("❌ Erro ao inserir:", error);
-      } else {
-        console.log(`🟩 Novo pedido inserido: ${order_sn}`);
-      }
-      return;
-    }
-
-    const { error } = await supabase
-      .from("shopee_orders")
-      .update(row)
-      .eq("order_sn", order_sn);
-
-    if (error) {
-      console.error("❌ Erro ao atualizar:", error);
-    } else {
-      console.log(`🔄 Pedido atualizado: ${order_sn} (${order.order_status})`);
-    }
-  } catch (err) {
-    console.error("❌ Erro geral ao salvar no Supabase:", err);
   }
 }
 
