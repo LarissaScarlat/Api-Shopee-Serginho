@@ -12,12 +12,13 @@ const router = express.Router();
 ============================================================ */
 async function getOrderDetail(order_sn) {
   try {
-    const t = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+  const t = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
-    const partner_id = Number(process.env.PARTNER_ID);
-    const shop_id = t.shop_id_list[0];
-    const access_token = t.access_token;
-    const partner_key = process.env.PARTNER_KEY;
+const partner_id = Number(process.env.PARTNER_ID);
+const shop_id = t.shop_id;            // 👈 aqui o ajuste real
+const access_token = t.access_token;  // 👈 ok
+const partner_key = process.env.PARTNER_KEY;
+
 
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
