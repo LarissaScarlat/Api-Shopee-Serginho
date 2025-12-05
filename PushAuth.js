@@ -10,7 +10,7 @@ router.use(express.json({
   }
 }));
 
-router.post("/", async (req, res) => {
+router.post("/notificacoes-shopee", async (req, res) => {
   try {
     const rawBody = req.rawBody;
     const receivedSignature = req.headers["authorization"]; // assinatura da Shopee
