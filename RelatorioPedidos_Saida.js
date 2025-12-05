@@ -45,7 +45,7 @@ router.get("/RelatorioPedidos", async (req, res) => {
     }
 
     // 🔥 Ajustado para o formato do seu JSON
-    const accessToken = tokens.token_de_acesso; 
+    const accessToken = tokens.access_token;
     const shopId = tokens.shop_id_list?.[0];
 
     if (!accessToken || !shopId) {
