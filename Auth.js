@@ -5,6 +5,7 @@ import crypto from "crypto";
 import fs from "fs";
 import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
+import RouterPush from "./PushAuth.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,6 +105,7 @@ app.get("/callback", async (req, res) => {
 });
 
 app.use("/", RouterRelatorio);
+app.use("/", RouterPush);
 
 
 
