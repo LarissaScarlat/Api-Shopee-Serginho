@@ -4,13 +4,6 @@ import crypto from "crypto";
 const router = express.Router();
 
 
-// Para capturar o RAW body da requisição
-router.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString(); // Guarda o corpo sem parse
-  }
-}));
-
 router.post("/", async (req, res) => {
   try {
     const rawBody = req.rawBody;
