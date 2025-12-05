@@ -125,6 +125,20 @@ router.post("/", async (req, res) => {
 
       return res.status(200).json({ message: "Logística processada (code 30)" });
     }
+// ==============================================
+// PROCESSA STATUS DO PEDIDO (code 3)
+// ==============================================
+if (body.code === 3 && body.data?.ordersn) {
+  const order_sn = body.data.ordersn;
+  const status = body.data.status;
+
+  console.log(`📦 Atualização de pedido (code 3): ${order_sn} → ${status}`);
+
+  const detail = await getOrderDetail(order_sn);
+  if (detail) await saveOrder(detail);
+
+  return res.status(200).json({ message: "Pedido processado (code 3)" });
+}
 
 
     // ==============================================
