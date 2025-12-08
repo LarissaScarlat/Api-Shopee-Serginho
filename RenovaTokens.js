@@ -29,8 +29,8 @@ export async function RenovaTokens() {
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // Base string correta (Shopee 2025)
-    const baseString = `${partner_id}${path}${timestamp}${shop_id}${refresh_token}`;
+    // 🔹 Base string correta PARA RENOVAÇÃO (não inclui shop_id ou refresh_token)
+    const baseString = `${partner_id}${path}${timestamp}`;
     const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
     const url = `https://openplatform.shopee.com.br${path}?partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}`;
