@@ -1,12 +1,28 @@
-import express from "express";
+import express from "express"; 
 import axios from "axios";
 import crypto from "crypto";
 import fs from "fs";
 import { supabase } from "./Supabase.js";
 import { salvarPedidoShopee } from "./SalvarShopeeSupabase.js";
+import { RenovaTokens } from "./RenovaTokens.js";  // <-- você já tinha isso
 
 
 const router = express.Router();
+
+/* ============================================================
+   🔹🔹🔹 ADIÇÃO 1 — MIDDLEWARE PARA RENOVAR TOKENS 🔹🔹🔹
+============================================================ */
+async function garantirToken(req, res, next) {
+  console.log("⏳ Verificando token antes da rota...");
+
+  try {
+    await RenovaTokens();  // chama sua função que renova
+  } catch (err) {
+    console.error("❌ Erro ao renovar token:", err);
+  }
+
+  next(); // continua para a rota normalmente
+}
 
 /* ============================================================
    FUNÇÃO PARA CONSULTAR DETALHES DO PEDIDO NA SHOPEE
@@ -73,7 +89,13 @@ async function consultarPedidoShopee(order_sn) {
 /* ============================================================
    ROTA REAL OFICIAL QUE FALTAVA!!
 ============================================================ */
-router.get("/buscar-pedido/:order_sn", async (req, res) => {
+
+/* 
+   🔹🔹🔹 ADIÇÃO 2 — ADICIONAR O MIDDLEWARE ANTES DA ROTA
+   Ficou assim:
+   router.get("/buscar-pedido/:order_sn", garantirToken, async (...)
+*/
+router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
   const order_sn = req.params.order_sn;
 
   console.log("🔎 Consulta manual de pedido:", order_sn);
@@ -94,4 +116,5 @@ router.get("/buscar-pedido/:order_sn", async (req, res) => {
 
 
 export default router;
+
 
