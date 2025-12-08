@@ -1,5 +1,6 @@
 import express from "express";
 import axios from "axios";
+import detalhesPedidos from "./DetalhesPedidos.js";
 
 const router = express.Router();
 
