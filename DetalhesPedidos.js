@@ -3,6 +3,8 @@ import axios from "axios";
 import crypto from "crypto";
 import fs from "fs";
 import { supabase } from "./Supabase.js";
+import { salvarPedidoShopee } from "./SalvarShopeeSupabase.js";
+
 
 const router = express.Router();
 
@@ -72,14 +74,24 @@ async function consultarPedidoShopee(order_sn) {
    ROTA REAL OFICIAL QUE FALTAVA!!
 ============================================================ */
 router.get("/buscar-pedido/:order_sn", async (req, res) => {
-  const { order_sn } = req.params;
+  const order_sn = req.params.order_sn;
 
-  console.log("📌 Rota chamada:", order_sn);
+  console.log("🔎 Consulta manual de pedido:", order_sn);
 
-  const resultado = await consultarPedidoShopee(order_sn);
+  const pedido = await consultarPedidoShopee(order_sn);
 
-  res.json(resultado);
+  if (!pedido) {
+    return res.status(404).json({ error: "Pedido não encontrado na Shopee" });
+  }
+
+  await salvarPedidoShopee(pedido);
+
+  return res.json({
+    mensagem: "Pedido encontrado e salvo no Supabase",
+    pedido
+  });
 });
+
 
 export default router;
 
