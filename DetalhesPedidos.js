@@ -80,18 +80,21 @@ router.get("/buscar-pedido/:order_sn", async (req, res) => {
 
   const pedido = await consultarPedidoShopee(order_sn);
 
-  if (!pedido) {
-    return res.status(404).json({ error: "Pedido não encontrado na Shopee" });
+  // 🚨 Aqui estava o erro!
+  if (pedido.error) {
+    return res.status(400).json({
+      error: "Erro ao consultar Shopee",
+      detalhe: pedido
+    });
   }
 
+  // Salva no Supabase
   await salvarPedidoShopee(pedido);
 
   return res.json({
-    mensagem: "Pedido encontrado e salvo no Supabase",
+    mensagem: "Pedido encontrado e salvo com sucesso",
     pedido
   });
 });
 
-
 export default router;
-
