@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/LarissaScarlat/Api-Shopee-Serginho#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.87.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
