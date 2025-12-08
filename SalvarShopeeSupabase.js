@@ -2,6 +2,12 @@ import { supabase } from "./Supabase.js";
 
 export async function salvarPedidoShopee(pedido) {
   try {
+    // ⚠ SE O PEDIDO NÃO FOI PAGO, NÃO SALVA!
+    if (!pedido.pay_time || pedido.pay_time === 0) {
+      console.log(`⛔ Pedido ${pedido.order_sn} ignorado — NÃO ESTÁ PAGO.`);
+      return false;
+    }
+
     const item = pedido.item_list?.[0] || {};
 
     const dados = {
@@ -22,13 +28,15 @@ export async function salvarPedidoShopee(pedido) {
 
     if (error) {
       console.error("❌ Erro ao salvar no Supabase:", error);
-      return;
+      return false;
     }
 
     console.log("✅ Pedido salvo no Supabase:", data);
+    return true;
 
   } catch (err) {
     console.error("❌ Erro inesperado:", err);
+    return false;
   }
 }
 
