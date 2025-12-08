@@ -1,67 +1,34 @@
-// SalvarShopeeSupabase.js
 import { supabase } from "./Supabase.js";
-
-// Converte epoch para ISO com segurança
-function safeDate(epoch) {
-  if (!epoch || isNaN(epoch)) return null;
-  return new Date(epoch * 1000).toISOString();
-}
 
 export async function salvarPedidoShopee(pedido) {
   try {
     const item = pedido.item_list?.[0] || {};
 
-    const dataToSave = {
-      // Identificação
-      order_sn: pedido.order_sn,
-      order_status: pedido.order_status,
-      create_time: safeDate(pedido.create_time),
-      update_time: safeDate(pedido.update_time),
-
-      // Comprador
-      buyer_user_id: pedido.buyer_user_id || null,
-      buyer_username: pedido.buyer_user_name || null,
-
-      // Item
-      item_id: item.item_id || null,
-      item_name: item.item_name || null,
-      item_sku: item.model_sku || null,
-      item_model_id: item.model_id || null,
-      item_model_name: item.model_name || null,
-      item_quantity: item.model_quantity_purchased || null,
-      item_original_price: item.original_price || null,
-      item_actual_price: item.price || null,
-
-      // Logística
-      warehouse_type: pedido.warehouse_type || null,
-      shipping_method: pedido.shipping_method || null,
-      shipping_carrier: pedido.package_list?.[0]?.shipping_carrier || null,
-      tracking_number: pedido.package_list?.[0]?.tracking_number || null,
-
-      // Pagamento
-      payment_method: pedido.payment_method || null,
-      escrow_amount: pedido.escrow_amount || null,
-      COD: pedido.cod || false,
-
-      // Auditoria
-      updated_at: new Date().toISOString()
+    const dados = {
+      orden_sn: pedido.order_sn,
+      order_date: pedido.create_time ? new Date(pedido.create_time * 1000).toISOString() : null,
+      status: pedido.order_status || null,
+      plataforma: "Shopee",
+      deposito: pedido.warehouse_type || null,
+      sku: item.model_sku || item.item_sku || null,
+      titulo_anuncio: item.item_name || null,
     };
 
-    const { error } = await supabase
+    console.log("📦 Dados enviados ao Supabase:", dados);
+
+    const { data, error } = await supabase
       .from("shopee_orders")
-      .upsert(dataToSave, { onConflict: "order_sn" });
+      .insert(dados);
 
     if (error) {
       console.error("❌ Erro ao salvar no Supabase:", error);
-      return false;
+      return;
     }
 
-    console.log(`💾 Pedido ${pedido.order_sn} salvo com sucesso no Supabase.`);
-    return true;
+    console.log("✅ Pedido salvo no Supabase:", data);
 
   } catch (err) {
-    console.error("❌ Erro inesperado ao salvar pedido:", err);
-    return false;
+    console.error("❌ Erro inesperado:", err);
   }
 }
 
