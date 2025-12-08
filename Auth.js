@@ -7,8 +7,7 @@ import cors from "cors";
 import RouterPush from "./PushAuth.js";
 import detalhesPedidos from "./DetalhesPedidos.js";
 import { RenovaTokens } from "./RenovaTokens.js";
-import dns from "dns";
-dns.setDefaultResultOrder("ipv4first");
+
 
 
 
