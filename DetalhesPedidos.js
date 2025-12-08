@@ -14,7 +14,11 @@ async function consultarPedidoShopee(order_sn) {
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
     const partner_id = Number(process.env.PARTNER_ID);
-    const shop_id = tokenInfo.shop_id_list[0];
+
+    // ALTERE AQUÍ ❗  
+    // Antes: const shop_id = tokenInfo.shop_id_list[0];
+    const shop_id = tokenInfo.shop_id;  
+
     const access_token = tokenInfo.access_token;
     const partner_key = process.env.PARTNER_KEY;
 
