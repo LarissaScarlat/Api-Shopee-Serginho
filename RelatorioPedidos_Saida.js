@@ -1,5 +1,7 @@
-import express from "express";
-import axios from "axios";
+import express from 'express';
+import fs from 'fs';
+import axios from 'axios';
+import 'dotenv/config';
 
 const router = express.Router();
 
