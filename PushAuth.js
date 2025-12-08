@@ -8,23 +8,19 @@ router.use(express.json({
   }
 }));
 
-router.post("/", async (req, res) => {
+router.use((req, res, next) => {
   try {
     console.log(">> Body recebido:", req.rawBody);
 
-    const body = req.body;
-
-    // Aqui você já pode processar o pedido no banco
-    // exemplo:
-    // await gravaPedidoSupabase(body);
-
-    return res.status(200).json({ message: "OK" });
+    // Aqui você pode apenas validar, não responder
+    next();
 
   } catch (err) {
-    console.error("Erro no webhook Shopee:", err);
-    return res.status(500).json({ error: "Erro interno no webhook" });
+    console.error("Erro no middleware Shopee:", err);
+    next(err); 
   }
 });
 
 export default router;
+
 

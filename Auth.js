@@ -119,7 +119,7 @@ app.get("/callback", async (req, res) => {
 RenovaTokens();
 
 
-app.use("/", RouterRelatorio);
+app.use("/notificacoes-shopee", RouterRelatorio);
 app.use("/notificacoes-shopee", RouterPush);
 app.use("/", detalhesPedidos);
 
