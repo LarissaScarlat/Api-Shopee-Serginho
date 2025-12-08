@@ -28,16 +28,13 @@ app.use(
  * Função para gerar assinatura Shopee v2
  * sign = HMAC_SHA256(partner_id + path + timestamp, partner_key)
  */
-function generateSign(path, timestamp, access_token = "", shop_id = "") {
-  const key = Buffer.from(process.env.PARTNER_KEY, "base64");
-  const baseString = `${process.env.PARTNER_ID}${path}${timestamp}${access_token}${shop_id}`;
-
+function generateSign(path, timestamp) {
+  const baseString = `${process.env.PARTNER_ID}${path}${timestamp}`;
   return crypto
-    .createHmac("sha256", key)
+    .createHmac("sha256", process.env.PARTNER_KEY)
     .update(baseString)
     .digest("hex");
 }
-
 
 /**
  * 1️⃣ ROTA DE AUTORIZAÇÃO — GERA O LINK DE LOGIN
