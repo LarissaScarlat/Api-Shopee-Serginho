@@ -67,13 +67,6 @@ async function consultarPedidoShopee(order_sn) {
         "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
     };
 
-    // 🔹 LOGS PARA DEBUG
-    console.log("🔑 Access Token:", access_token);
-    console.log("🛒 Shop ID:", shop_id);
-    console.log("📦 Order SN:", order_sn);
-    console.log("📤 URL da requisição:", url);
-    console.log("📝 Body enviado:", body);
-
     let response;
     try {
       response = await axios.post(url, body);
