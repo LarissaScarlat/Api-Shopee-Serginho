@@ -1,39 +1,36 @@
+import express from "express";
 import axios from "axios";
 import crypto from "crypto";
-import { RenovaTokens } from "./RenovaTokens.js";
 import { salvarPedidoShopee } from "./SalvarShopeeSupabase.js";
+import { RenovaTokens } from "./RenovaTokens.js";
+
+const router = express.Router();
 
 /* ============================================================
-   Função principal chamada pelo PushAuth
+   🔹 Middleware — obtém token válido antes de cada consulta
 ============================================================ */
-export async function obterDetalhesPedido(order_sn) {
-  console.log("🔎 Obtendo detalhes do pedido:", order_sn);
+async function garantirToken(req, res, next) {
+  try {
+    console.log("⏳ Renovando token antes da requisição...");
 
-  // 1. Renova token
-  const tokenInfo = await RenovaTokens();
-  if (!tokenInfo) {
-    return { error: "token_error", message: "Falha ao renovar token" };
+    const tokenInfo = await RenovaTokens();
+    if (!tokenInfo || !tokenInfo.access_token) {
+      return res.status(500).json({ error: "Falha ao renovar token" });
+    }
+
+    req.access_token = tokenInfo.access_token;
+    req.shop_id = tokenInfo.shop_id;
+
+    next();
+
+  } catch (err) {
+    console.error("❌ Erro no middleware garantirToken:", err);
+    return res.status(500).json({ error: "Erro interno ao gerar token" });
   }
-
-  const access_token = tokenInfo.access_token;
-  const shop_id = tokenInfo.shop_id;
-
-  // 2. Consulta pedido
-  const pedido = await consultarPedidoShopee(order_sn, access_token, shop_id);
-
-  if (!pedido || pedido.error) {
-    console.error("❌ Erro ao consultar pedido:", pedido);
-    return pedido;
-  }
-
-  // 3. Salva no Supabase
-  await salvarPedidoShopee(pedido);
-
-  return pedido;
 }
 
 /* ============================================================
-   Consulta detalhes do pedido na API da Shopee
+   🔹 Função que consulta pedido na Shopee
 ============================================================ */
 async function consultarPedidoShopee(order_sn, access_token, shop_id) {
   try {
@@ -44,15 +41,15 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
-    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseString)
+      .digest("hex");
 
     const url =
-      `https://openplatform.shopee.com${path}` +
-      `?partner_id=${partner_id}` +
-      `&timestamp=${timestamp}` +
-      `&sign=${sign}` +
-      `&access_token=${access_token}` +
-      `&shop_id=${shop_id}`;
+      `https://openplatform.shopee.com${path}?` +
+      `partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}&` +
+      `access_token=${access_token}&shop_id=${shop_id}`;
 
     const body = {
       order_sn_list: [order_sn],
@@ -60,30 +57,61 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
         "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
     };
 
-    console.log("📤 Enviando consulta:", url);
+    console.log("📤 Consultando pedido:", order_sn);
 
     const response = await axios.post(url, body);
 
     const pedido = response.data.response?.order_list?.[0];
     if (!pedido) {
-      return { error: "order_not_found", raw: response.data };
+      return { error: "order_not_found", detalhe: response.data };
     }
 
     return pedido;
 
   } catch (err) {
-    console.error("❌ ERRO DETALHADO SHOPEE:");
-    console.error("📌 Status:", err.response?.status);
-    console.error("📌 Data:", err.response?.data);
-    console.error("📌 Headers:", err.response?.headers);
-    console.error("📌 Config:", err.config);
+    console.error("❌ ERRO AO CONSULTAR PEDIDO NA SHOPEE:");
+    console.error("Status:", err.response?.status);
+    console.error("Data:", err.response?.data);
 
     return {
       error: "unexpected_error",
-      detail: err.response?.data || err
+      detalhe: err.response?.data || err
     };
   }
 }
 
+/* ============================================================
+   🔹 ROTA CHAMADA PELO PushAuth.js
+============================================================ */
+router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
+  const order_sn = req.params.order_sn;
+
+  console.log("🔎 Recebido pedido do webhook:", order_sn);
+
+  const pedido = await consultarPedidoShopee(
+    order_sn,
+    req.access_token,
+    req.shop_id
+  );
+
+  if (!pedido || pedido.error) {
+    console.error("❌ Falha ao consultar pedido:", pedido);
+    return res.status(400).json({
+      error: "Erro ao consultar pedido",
+      detalhe: pedido
+    });
+  }
+
+  console.log("✅ Pedido encontrado:", pedido.order_sn);
+
+  // salvar no Supabase
+  await salvarPedidoShopee(pedido);
+
+  return res.json({
+    mensagem: "Pedido salvo no Supabase",
+    pedido
+  });
+});
 
 export default router;
+
