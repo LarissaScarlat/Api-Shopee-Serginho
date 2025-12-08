@@ -6,8 +6,12 @@ export async function RenovaTokens() {
   try {
     console.log("🔄 Verificando validade do access_token...");
 
+    // Lê tokens salvos
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
-    const shop_id = tokenInfo.shop_id;
+
+    // ⚠️ Ajuste importante: pegar shop_id corretamente
+    // A Shopee retorna shop_id_list como array, devemos pegar o primeiro
+    const shop_id = tokenInfo.shop_id_list?.[0] || tokenInfo.shop_id;
     let refresh_token = tokenInfo.refresh_token;
 
     if (!shop_id || !refresh_token) {
@@ -16,9 +20,11 @@ export async function RenovaTokens() {
     }
 
     const agora = Math.floor(Date.now() / 1000);
+
+    // ⚠️ Ajuste: verifica se o token ainda é válido
     if (tokenInfo.expire_at && agora < tokenInfo.expire_at - 300) {
       console.log("✅ Token ainda válido.");
-      return tokenInfo;
+      return { ...tokenInfo, shop_id };
     }
 
     console.log("⚠ Token expirado! Renovando...");
@@ -28,7 +34,7 @@ export async function RenovaTokens() {
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // 🔹 Base string correta
+    // 🔹 Base string correta para renovação de token
     const baseString = `${partner_id}${path}${timestamp}`;
     const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
@@ -44,14 +50,15 @@ export async function RenovaTokens() {
       return null;
     }
 
-    // Atualiza o token com os valores novos
+    // ⚠️ Ajuste: armazenar timestamp de expiração corretamente
     const novoToken = {
       access_token: response.data.access_token,
       refresh_token: response.data.refresh_token,
       expire_in: response.data.expire_in,
       timestamp,
       expire_at: timestamp + response.data.expire_in,
-      shop_id
+      shop_id,
+      shop_id_list: [shop_id] // garante compatibilidade com outros lugares do código
     };
 
     fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
