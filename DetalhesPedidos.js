@@ -42,7 +42,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
     const url =
-      `https://openplatform.shopee.com.br${path}` +
+      `https://openplatform.shopee/${path}` +
       `?partner_id=${partner_id}` +
       `&timestamp=${timestamp}` +
       `&sign=${sign}` +
