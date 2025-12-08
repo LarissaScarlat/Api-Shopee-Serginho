@@ -41,10 +41,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseString)
-      .digest("hex");
+    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
     const url =
       `https://openplatform.shopee.com.br${path}?` +
@@ -67,7 +64,6 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     }
 
     return pedido;
-
   } catch (err) {
     console.error("❌ ERRO AO CONSULTAR PEDIDO NA SHOPEE:");
     console.error("Status:", err.response?.status);
@@ -81,37 +77,26 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
 }
 
 /* ============================================================
-   🔹 ROTA CHAMADA PELO PushAuth.js
+   ROTA para acessar detalhes do pedido via HTTP (opcional)
 ============================================================ */
 router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
   const order_sn = req.params.order_sn;
-
   console.log("🔎 Recebido pedido do webhook:", order_sn);
 
-  const pedido = await consultarPedidoShopee(
-    order_sn,
-    req.access_token,
-    req.shop_id
-  );
+  const pedido = await consultarPedidoShopee(order_sn, req.access_token, req.shop_id);
 
   if (!pedido || pedido.error) {
     console.error("❌ Falha ao consultar pedido:", pedido);
-    return res.status(400).json({
-      error: "Erro ao consultar pedido",
-      detalhe: pedido
-    });
+    return res.status(400).json({ error: "Erro ao consultar pedido", detalhe: pedido });
   }
 
   console.log("✅ Pedido encontrado:", pedido.order_sn);
 
-  // salvar no Supabase
+  // Salvar no Supabase
   await salvarPedidoShopee(pedido);
 
-  return res.json({
-    mensagem: "Pedido salvo no Supabase",
-    pedido
-  });
+  return res.json({ mensagem: "Pedido salvo no Supabase", pedido });
 });
 
+export { consultarPedidoShopee };
 export default router;
-

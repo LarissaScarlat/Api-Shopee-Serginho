@@ -1,6 +1,7 @@
 import express from "express";
-import axios from "axios";
-import detalhesPedidos from "./DetalhesPedidos.js";
+import { consultarPedidoShopee } from "./DetalhesPedidos.js";
+import { RenovaTokens } from "./RenovaTokens.js";
+import { salvarPedidoShopee } from "./SalvarShopeeSupabase.js";
 
 const router = express.Router();
 
@@ -13,12 +14,11 @@ router.use(express.json({
 router.post("/", async (req, res) => {
   try {
     console.log(">> Body recebido:", req.rawBody);
-
     const body = req.body;
 
-    /* ============================================================
-       1. EXTRAI O ORDER_SN DO WEBHOOK
-    ============================================================= */
+    // ============================================================
+    // 1️⃣ Extrai order_sn do webhook
+    // ============================================================
     let order_sn = null;
 
     if (body.data?.ordersn) order_sn = body.data.ordersn;
@@ -33,17 +33,35 @@ router.post("/", async (req, res) => {
 
     console.log(`🔎 Pedido detectado: ${order_sn}`);
 
-    /* ============================================================
-       2. CHAMA A ROTA DO DETALHESPEDIDOS
-    ============================================================= */
-    try {
-      await axios.get(`${process.env.REDIRECT_DOMAIN}/buscar-pedido/${order_sn}`);
-      console.log("📤 Pedido encaminhado para DetalhesPedidos.js");
-    } catch (err) {
-      console.error("❌ Erro ao chamar DetalhesPedidos:", err.message);
+    // ============================================================
+    // 2️⃣ Renovar token antes de consultar pedido
+    // ============================================================
+    const tokenInfo = await RenovaTokens();
+    if (!tokenInfo || !tokenInfo.access_token) {
+      console.error("❌ Falha ao renovar token");
+      return res.status(500).json({ error: "Falha ao renovar token" });
     }
 
-    return res.status(200).json({ message: "processado" });
+    const access_token = tokenInfo.access_token;
+    const shop_id = tokenInfo.shop_id;
+
+    // ============================================================
+    // 3️⃣ Consulta pedido diretamente sem fazer HTTP para si mesmo
+    // ============================================================
+    const pedido = await consultarPedidoShopee(order_sn, access_token, shop_id);
+
+    if (!pedido || pedido.error) {
+      console.error("❌ Falha ao consultar pedido:", pedido);
+      return res.status(400).json({ error: "Falha ao consultar pedido", detalhe: pedido });
+    }
+
+    // ============================================================
+    // 4️⃣ Salvar pedido no Supabase
+    // ============================================================
+    await salvarPedidoShopee(pedido);
+    console.log("✅ Pedido salvo com sucesso:", order_sn);
+
+    return res.status(200).json({ message: "Pedido processado", pedido });
 
   } catch (err) {
     console.error("❌ Erro no webhook Shopee:", err);
@@ -52,5 +70,6 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
+
 
 
