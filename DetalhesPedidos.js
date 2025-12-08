@@ -70,8 +70,18 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
 
     return pedido;
 
-  } catch (err) {
-    return { error: "unexpected_error", detail: err.response?.data || err };
+    } catch (err) {
+    // 🔥 **AQUI ENTRA O CATCH DETALHADO**
+    console.error("❌ ERRO DETALHADO SHOPEE:");
+    console.error("📌 Status:", err.response?.status);
+    console.error("📌 Data:", err.response?.data);
+    console.error("📌 Headers:", err.response?.headers);
+    console.error("📌 Config:", err.config);
+
+    return {
+      error: "unexpected_error",
+      detail: err.response?.data || err
+    };
   }
 }
 
