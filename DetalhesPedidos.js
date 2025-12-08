@@ -67,52 +67,37 @@ async function consultarPedidoShopee(order_sn) {
         "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
     };
 
+    // 🔹 LOGS PARA DEBUG
+    console.log("🔑 Access Token:", access_token);
+    console.log("🛒 Shop ID:", shop_id);
+    console.log("📦 Order SN:", order_sn);
+    console.log("📤 URL da requisição:", url);
+    console.log("📝 Body enviado:", body);
+
     let response;
     try {
       response = await axios.post(url, body);
     } catch (e) {
+      console.error("❌ Erro HTTP da Shopee:", e.response?.data || e);
       return { error: "http_error", detail: e.response?.data || e };
     }
 
+    // 🔹 LOG DO RETORNO
+    console.log("📬 Retorno Shopee:", response.data);
+
     const pedido = response.data.response?.order_list?.[0];
     if (!pedido) {
+      console.warn("⚠️ Pedido não encontrado. Retorno vazio da Shopee.");
       return { error: "order_not_found", raw: response.data };
     }
 
     return pedido;
 
   } catch (err) {
+    console.error("❌ Erro inesperado na consulta do pedido:", err);
     return { error: "unexpected_error", detail: err };
   }
 }
-
-/* ============================================================
-   ROTA REAL OFICIAL QUE FALTAVA!!
-============================================================ */
-
-/* 
-   🔹🔹🔹 ADIÇÃO 2 — ADICIONAR O MIDDLEWARE ANTES DA ROTA
-   Ficou assim:
-   router.get("/buscar-pedido/:order_sn", garantirToken, async (...)
-*/
-router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
-  const order_sn = req.params.order_sn;
-
-  console.log("🔎 Consulta manual de pedido:", order_sn);
-
-  const pedido = await consultarPedidoShopee(order_sn);
-
-  if (!pedido) {
-    return res.status(404).json({ error: "Pedido não encontrado na Shopee" });
-  }
-
-  await salvarPedidoShopee(pedido);
-
-  return res.json({
-    mensagem: "Pedido encontrado e salvo no Supabase",
-    pedido
-  });
-});
 
 
 export default router;
