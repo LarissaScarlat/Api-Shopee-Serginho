@@ -3,7 +3,7 @@ import express from "express";
 import axios from "axios";
 import fs from "fs";
 import crypto from "crypto";
-import { supabase } from "./Supabase.js";
+
 
 const router = express.Router();
 
@@ -95,21 +95,14 @@ if (!order_sn) {
 
 console.log(`🔎 Pedido detectado: ${order_sn} (code ${body.code})`);
 
+// 🔄 Envia o número do pedido para o backend de detalhes
+try {
+  await axios.get(`${process.env.URL_BACKEND}/buscar-pedido/${order_sn}`);
+  console.log(`📤 Pedido enviado para processamento: ${order_sn}`);
+} catch (err) {
+  console.error("❌ Erro ao chamar backend de detalhes:", err);
+}
 
-    /* ----------------------------------------------------
-       BUSCA DETALHES COMPLETOS NA API
-    ---------------------------------------------------- */
-    const detail = await getOrderDetail(order_sn);
-
-    if (!detail) {
-      console.log("⚠️ Nenhum detalhe retornado pela Shopee.");
-      return res.status(200).json({ message: "sem detalhes" });
-    }
-
-    /* ----------------------------------------------------
-       SALVA NO SUPABASE
-    ---------------------------------------------------- */
-    await saveOrder(detail);
 
     return res.status(200).json({ message: "processado" });
   } catch (err) {
