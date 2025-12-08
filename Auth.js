@@ -7,7 +7,7 @@ import cors from "cors";
 import RouterPush from "./PushAuth.js";
 import detalhesPedidos from "./DetalhesPedidos.js";
 import { RenovaTokens } from "./RenovaTokens.js";
-
+import RouterIp from "./Ip.js";
 
 
 
@@ -122,6 +122,7 @@ RenovaTokens();
 
 app.use("/notificacoes-shopee", RouterPush);
 app.use("/", detalhesPedidos);
+app.use("/", RouterIp);
 
 
 
