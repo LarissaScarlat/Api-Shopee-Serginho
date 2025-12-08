@@ -7,9 +7,8 @@ export async function RenovaTokens() {
     console.log("🔄 Verificando validade do access_token...");
 
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
-
-    const shop_id = tokenInfo.shop_id || tokenInfo.shop_id_list?.[0];
-    const refresh_token = String(tokenInfo.refresh_token || "").trim();
+    const shop_id = tokenInfo.shop_id;
+    let refresh_token = tokenInfo.refresh_token;
 
     if (!shop_id || !refresh_token) {
       console.error("❌ shop_id ou refresh_token inválido");
@@ -29,35 +28,39 @@ export async function RenovaTokens() {
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // 🔹 Base string correta PARA RENOVAÇÃO (não inclui shop_id ou refresh_token)
+    // 🔹 Base string correta
     const baseString = `${partner_id}${path}${timestamp}`;
     const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
-    const url = `https://openplatform.shopee.com.br${path}?partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}`;
-    const body = { refresh_token, partner_id, shop_id };
+    const url = `https://partner.shopeemobile.com${path}?partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}`;
+    const body = { shop_id, refresh_token, partner_id };
 
-    console.log("📤 URL:", url);
-    console.log("📦 Body:", body);
-    console.log("🔏 Sign:", sign);
-
-    const response = await axios.post(url, body);
+    const response = await axios.post(url, body, {
+      headers: { "Content-Type": "application/json" }
+    });
 
     if (response.data.error) {
       console.error("❌ Erro da Shopee ao renovar token:", response.data);
       return null;
     }
 
-    const novoToken = response.data;
-    novoToken.timestamp = timestamp;
-    novoToken.shop_id = shop_id;
-    novoToken.expire_at = timestamp + (novoToken.expire_in || 14400); // 4h padrão se não vier expire_in
-    fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
+    // Atualiza o token com os valores novos
+    const novoToken = {
+      access_token: response.data.access_token,
+      refresh_token: response.data.refresh_token,
+      expire_in: response.data.expire_in,
+      timestamp,
+      expire_at: timestamp + response.data.expire_in,
+      shop_id
+    };
 
+    fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
     console.log("✅ Token renovado com sucesso!");
+
     return novoToken;
 
-  } catch (error) {
-    console.error("❌ Erro ao renovar token:", error.response?.data || error);
+  } catch (err) {
+    console.error("❌ Erro ao renovar token:", err.response?.data || err);
     return null;
   }
 }
