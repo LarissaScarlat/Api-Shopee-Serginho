@@ -6,7 +6,7 @@ import fs from "fs";
 import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
-import RouterDetalhesPedidos from "./DetalhesPedidos.js";
+import detalhesPedidos from "./DetalhesPedidos.js";
 
 
 
@@ -117,7 +117,7 @@ app.get("/callback", async (req, res) => {
 
 app.use("/", RouterRelatorio);
 app.use("/notificacoes-shopee", RouterPush);
-app.use("/", RouterDetalhesPedidos);
+app.use("/", detalhesPedidos);
 
 
 
