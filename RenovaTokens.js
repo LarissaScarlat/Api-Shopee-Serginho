@@ -1,68 +1,66 @@
-// RenovarTokensShopee.js
-import axios from "axios";
+// RenovaTokensShopee.js
 import fs from "fs";
+import axios from "axios";
 import crypto from "crypto";
 
 export async function RenovaTokens() {
   try {
+    console.log("🔄 Verificando validade do access_token...");
+
+    // 🔹 Lê token atual
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
-    const partner_id = Number(process.env.PARTNER_ID);
-    const partner_key = process.env.PARTNER_KEY;
-    const shop_id = tokenInfo.shop_id_list?.[0];
-    const refresh_token = tokenInfo.refresh_token;
+    const expiresIn = tokenInfo.expire_in; // segundos
+    const lastUpdate = tokenInfo.timestamp; // salvo por você
+    const agora = Math.floor(Date.now() / 1000);
+    const tempoPassado = agora - lastUpdate;
+
+    // 🔹 Se o token ainda for válido, só retorna
+    if (tempoPassado < expiresIn - 300) {  
+      console.log("✅ Token ainda válido.");
+      return tokenInfo;
+    }
+
+    console.log("⚠ Token expirado! Renovando...");
 
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const baseString = `${partner_id}${path}${timestamp}${refresh_token}${shop_id}`;
-    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
+    const baseString = `${process.env.PARTNER_ID}${path}${timestamp}${tokenInfo.refresh_token}${tokenInfo.shop_id_list[0]}`;
+    const sign = crypto.createHmac("sha256", process.env.PARTNER_KEY)
+      .update(baseString)
+      .digest("hex");
 
     const url =
       `https://openplatform.shopee.com.br${path}` +
-      `?partner_id=${partner_id}` +
+      `?partner_id=${process.env.PARTNER_ID}` +
       `&timestamp=${timestamp}` +
       `&sign=${sign}`;
 
     const body = {
-      shop_id,
-      refresh_token,
-      partner_id,
+      refresh_token: tokenInfo.refresh_token,
+      partner_id: Number(process.env.PARTNER_ID),
+      shop_id: Number(tokenInfo.shop_id_list[0])
     };
-
-    console.log("🔄 Renovando token da Shopee...");
 
     const response = await axios.post(url, body);
 
-    const novoAccess = response.data.access_token;
-    const novoRefresh = response.data.refresh_token;
+    const novoToken = response.data;
 
-    if (!novoAccess) {
-      console.error("❌ Erro ao renovar token:", response.data);
-      return false;
-    }
+    // 🔹 Atualiza timestamp para controle futuro
+    novoToken.timestamp = timestamp;
 
-    // Salva novo tokens.json atualizado
-    fs.writeFileSync(
-      "tokens.json",
-      JSON.stringify(
-        {
-          ...tokenInfo,
-          access_token: novoAccess,
-          refresh_token: novoRefresh,
-        },
-        null,
-        2
-      )
-    );
+    fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
 
-    console.log("✅ Tokens renovados com sucesso!");
-    return true;
+    console.log("✅ Token renovado com sucesso!");
 
-  } catch (err) {
-    console.error("❌ Erro ao renovar tokens:", err.response?.data || err);
-    return false;
+    return novoToken;
+
+  } catch (error) {
+    console.error("❌ Erro ao renovar token:", error.response?.data || error);
+    return null;
   }
 }
+
 
 
