@@ -3,7 +3,7 @@ import axios from "axios";
 import fs from "fs";
 import crypto from "crypto";
 
-export async function renovarTokensShopee() {
+export async function RenovaTokens() {
   try {
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
@@ -64,3 +64,5 @@ export async function renovarTokensShopee() {
     return false;
   }
 }
+
+
