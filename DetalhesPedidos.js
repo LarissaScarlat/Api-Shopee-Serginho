@@ -14,15 +14,14 @@ const router = express.Router();
 ============================================================ */
 async function garantirToken(req, res, next) {
   console.log("⏳ Verificando token antes da rota...");
-
-  try {
-    await RenovaTokens();  // chama sua função que renova
-  } catch (err) {
-    console.error("❌ Erro ao renovar token:", err);
+  const tokenInfo = await RenovaTokens();
+  if (!tokenInfo) {
+    return res.status(500).json({ error: "Erro ao renovar token" });
   }
-
-  next(); // continua para a rota normalmente
+  req.access_token = tokenInfo.access_token; // passa para a rota
+  next();
 }
+
 
 /* ============================================================
    FUNÇÃO PARA CONSULTAR DETALHES DO PEDIDO NA SHOPEE
