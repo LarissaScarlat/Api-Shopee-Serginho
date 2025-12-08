@@ -86,9 +86,13 @@ router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
 
   const pedido = await consultarPedidoShopee(order_sn, access_token, shop_id);
 
-  if (!pedido || pedido.error) {
-  return res.status(400).json({ error: "Erro ao consultar Shopee", detalhe: pedido });
+ if (!pedido || pedido.error) {
+  return res.status(400).json({
+    error: "Falha ao consultar pedido na Shopee",
+    detalhe: pedido
+  });
 }
+
 
 
   await salvarPedidoShopee(pedido);
