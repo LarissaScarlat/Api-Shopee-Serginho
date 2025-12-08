@@ -80,8 +80,13 @@ router.get("/buscar-pedido/:order_sn", async (req, res) => {
 
   const pedido = await consultarPedidoShopee(order_sn);
 
-  if (!pedido) {
-    return res.status(404).json({ error: "Pedido não encontrado na Shopee" });
+  console.log("📥 Retorno bruto da Shopee:", pedido);
+
+  if (!pedido || pedido.error) {
+    return res.status(404).json({
+      erro: "Pedido não encontrado ou Shopee não retornou dados",
+      detalhe: pedido
+    });
   }
 
   await salvarPedidoShopee(pedido);
