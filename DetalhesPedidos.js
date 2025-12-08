@@ -11,24 +11,39 @@ const router = express.Router();
 ============================================================ */
 async function consultarPedidoShopee(order_sn) {
   try {
-    const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+    console.log("📌 Iniciando consulta Shopee para:", order_sn);
 
+    // 1. Tokens
+    let tokenInfo;
+    try {
+      tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+    } catch (e) {
+      console.error("❌ Erro ao ler tokens.json:", e);
+      return { error: "tokens_json_error", detail: e };
+    }
+
+    // 2. Variáveis
     const partner_id = Number(process.env.PARTNER_ID);
-
-   
-   const shop_id = Number(tokenInfo.shop_id_list[0]);
+    const shop_id = Number(tokenInfo.shop_id_list?.[0]);
     const access_token = tokenInfo.access_token;
     const partner_key = process.env.PARTNER_KEY;
 
+    console.log("📌 partner_id:", partner_id);
+    console.log("📌 shop_id:", shop_id);
+    console.log("📌 access_token:", access_token ? "OK" : "FALTANDO");
+    console.log("📌 partner_key:", partner_key ? "OK" : "FALTANDO");
+
+    if (!partner_id || !shop_id || !access_token || !partner_key) {
+      return { error: "missing_credentials" };
+    }
+
+    // 3. Assinatura
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
-
     const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
+    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseString)
-      .digest("hex");
+    console.log("📌 Sign gerada:", sign.slice(0, 10) + "...");
 
     const url =
       `https://openplatform.shopee.com.br${path}` +
@@ -38,85 +53,38 @@ async function consultarPedidoShopee(order_sn) {
       `&access_token=${access_token}` +
       `&shop_id=${shop_id}`;
 
+    console.log("🌐 URL chamada:", url);
+
+    // 4. Chamada API
     const body = {
       order_sn_list: [order_sn],
       response_optional_fields:
         "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
     };
 
-    const response = await axios.post(url, body);
-
-    console.log("🔍 Resposta Oficial Shopee:", JSON.stringify(response.data, null, 2));
-
-    if (!response.data.response?.order_list?.[0]) return null;
-
-    return response.data.response.order_list[0];
-
-  } catch (err) {
-    console.error("❌ Erro ao consultar Shopee:", err);
-    return null;
-  }
-}
-
-/* ============================================================
-   FUNÇÃO PARA SALVAR NO SUPABASE
-============================================================ */
-async function salvarSupabase(detail) {
-  try {
-    const dataToSave = {
-      order_sn: detail.order_sn,
-      order_status: detail.order_status,
-      payment_method: detail.payment_method,
-      buyer_username: detail.buyer_user_name,
-      shipping_carrier: detail.package_list?.[0]?.shipping_carrier || null,
-      tracking_number: detail.package_list?.[0]?.tracking_number || null,
-      pay_time: detail.pay_time,
-      total_amount: detail.total_amount,
-      recipient_name: detail.recipient_address?.name || null,
-      recipient_phone: detail.recipient_address?.phone || null,
-      recipient_address: detail.recipient_address?.full_address || null,
-      items: detail.item_list,
-      updated_at: new Date().toISOString()
-    };
-
-    const { error } = await supabase.from("pedidos").upsert(dataToSave, {
-      onConflict: "order_sn"
-    });
-
-    if (error) throw error;
-
-    console.log(`💾 Pedido ${detail.order_sn} salvo no Supabase.`);
-  } catch (err) {
-    console.error("❌ Erro ao salvar no Supabase:", err);
-  }
-}
-
-/* ============================================================
-   ROTA PÚBLICA — CONSULTAR E SALVAR PEDIDO
-============================================================ */
-router.get("/buscar-pedido/:order_sn", async (req, res) => {
-  try {
-    const order_sn = req.params.order_sn;
-
-    console.log("🔎 Recebida consulta manual para:", order_sn);
-
-    const detail = await consultarPedidoShopee(order_sn);
-
-    if (!detail) {
-      return res.status(404).json({ erro: "Pedido não encontrado na Shopee" });
+    let response;
+    try {
+      response = await axios.post(url, body);
+    } catch (e) {
+      console.error("❌ Erro HTTP da Shopee:", e.response?.data || e);
+      return { error: "http_error", detail: e.response?.data || e };
     }
 
-    await salvarSupabase(detail);
+    console.log("🔍 Resposta Shopee:", JSON.stringify(response.data, null, 2));
 
-    return res.json({
-      mensagem: "Pedido processado com sucesso",
-      pedido: detail
-    });
+    const pedido = response.data.response?.order_list?.[0];
+
+    if (!pedido) {
+      return { error: "order_not_found", raw: response.data };
+    }
+
+    return pedido;
 
   } catch (err) {
-    console.error("❌ Erro geral:", err);
-    return res.status(500).json({ erro: "Erro interno" });
+    console.error("❌ Erro inesperado:", err);
+    return { error: "unexpected_error", detail: err };
   }
-});
+}
+
 
 export default router;
