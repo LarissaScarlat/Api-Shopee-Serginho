@@ -9,59 +9,36 @@ export async function RenovaTokens() {
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
     const shop_id = tokenInfo.shop_id || tokenInfo.shop_id_list?.[0];
-    if (!shop_id) {
-      console.log("❌ shop_id não encontrado no tokens.json");
+    const refresh_token = String(tokenInfo.refresh_token || "").trim();
+
+    if (!shop_id || !refresh_token) {
+      console.error("❌ shop_id ou refresh_token inválido");
       return null;
     }
 
-    const shop_id_clean = Number(shop_id);
-    const refresh_token_clean = String(tokenInfo.refresh_token || "").trim();
-
-    if (!refresh_token_clean) {
-      console.log("❌ refresh_token vazio no tokens.json");
-      return null;
-    }
-
-    const expiresIn = Number(tokenInfo.expire_in || 0);
-    const lastUpdate = Number(tokenInfo.timestamp || 0);
     const agora = Math.floor(Date.now() / 1000);
-
-    if (agora - lastUpdate < expiresIn - 300) {
+    if (tokenInfo.expire_at && agora < tokenInfo.expire_at - 300) {
       console.log("✅ Token ainda válido.");
       return tokenInfo;
     }
 
     console.log("⚠ Token expirado! Renovando...");
 
+    const partner_id = Number(process.env.PARTNER_ID);
+    const partner_key = process.env.PARTNER_KEY;
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // BaseString correta: apenas partner_id + path + timestamp
-    const baseString = `${process.env.PARTNER_ID}${path}${timestamp}`;
+    // Base string correta (Shopee 2025)
+    const baseString = `${partner_id}${path}${timestamp}${shop_id}${refresh_token}`;
+    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
-    const sign = crypto
-      .createHmac("sha256", process.env.PARTNER_KEY)
-      .update(baseString)
-      .digest("hex");
+    const url = `https://openplatform.shopee.com.br${path}?partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}`;
+    const body = { refresh_token, partner_id, shop_id };
 
-    console.log("🔑 Valores para assinatura:");
-    console.log("partner_id:", process.env.PARTNER_ID);
-    console.log("path:", path);
-    console.log("timestamp:", timestamp);
-    console.log("shop_id:", shop_id_clean);
-    console.log("refresh_token:", refresh_token_clean);
-    console.log("🔏 Sign gerado:", sign);
-
-    // URL de produção correta
-    const url = `https://partner.shopeemobile.com${path}?partner_id=${process.env.PARTNER_ID}&timestamp=${timestamp}&sign=${sign}`;
-
-    const body = {
-      refresh_token: refresh_token_clean,
-      partner_id: Number(process.env.PARTNER_ID),
-      shop_id: shop_id_clean
-    };
-
-    console.log("📦 Body da requisição:", body);
+    console.log("📤 URL:", url);
+    console.log("📦 Body:", body);
+    console.log("🔏 Sign:", sign);
 
     const response = await axios.post(url, body);
 
@@ -72,8 +49,8 @@ export async function RenovaTokens() {
 
     const novoToken = response.data;
     novoToken.timestamp = timestamp;
-    novoToken.shop_id = shop_id_clean;
-
+    novoToken.shop_id = shop_id;
+    novoToken.expire_at = timestamp + (novoToken.expire_in || 14400); // 4h padrão se não vier expire_in
     fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
 
     console.log("✅ Token renovado com sucesso!");
@@ -84,4 +61,3 @@ export async function RenovaTokens() {
     return null;
   }
 }
-
