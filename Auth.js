@@ -7,7 +7,7 @@ import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
 import detalhesPedidos from "./DetalhesPedidos.js";
-import { RenovaTokens } from "./RenovaTokensShopee.js";
+import { RenovaTokens } from "./RenovaTokens.js";
 
 
 
