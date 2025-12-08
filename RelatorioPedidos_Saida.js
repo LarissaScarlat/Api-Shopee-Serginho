@@ -29,7 +29,7 @@ router.post("/notificacoes-shopee", async (req, res) => {
 
     // Chama o backend de detalhes
     try {
-      await axios.get(`${process.env.URL_BACKEND}/buscar-pedido/${order_sn}`);
+      await axios.get(`${process.env.REDIRECT_DOMAIN}/buscar-pedido/${order_sn}`);
       console.log(`📤 Pedido enviado para DetalhesPedidos.js`);
     } catch (err) {
       console.error("❌ Erro ao chamar backend de detalhes:", err);
