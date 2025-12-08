@@ -47,7 +47,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
       .digest("hex");
 
     const url =
-      `https://openplatform.shopee.com${path}?` +
+      `https://openplatform.shopee.com.br${path}?` +
       `partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}&` +
       `access_token=${access_token}&shop_id=${shop_id}`;
 
