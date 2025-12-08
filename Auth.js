@@ -4,7 +4,6 @@ import axios from "axios";
 import crypto from "crypto";
 import fs from "fs";
 import cors from "cors";
-import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
 import detalhesPedidos from "./DetalhesPedidos.js";
 import { RenovaTokens } from "./RenovaTokens.js";
@@ -119,7 +118,7 @@ app.get("/callback", async (req, res) => {
 RenovaTokens();
 
 
-app.use("/notificacoes-shopee", RouterRelatorio);
+
 app.use("/notificacoes-shopee", RouterPush);
 app.use("/", detalhesPedidos);
 
