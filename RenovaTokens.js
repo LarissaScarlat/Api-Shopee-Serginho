@@ -1,77 +1,66 @@
-import fs from 'fs';
-import axios from 'axios';
+// RenovarTokensShopee.js
+import axios from "axios";
+import fs from "fs";
+import crypto from "crypto";
 
-const TOKEN_FILE = 'tokens.json';
-
-function carregarTokens() {
+export async function renovarTokensShopee() {
   try {
-    if (!fs.existsSync(TOKEN_FILE)) {
-      return null;
+    const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+
+    const partner_id = Number(process.env.PARTNER_ID);
+    const partner_key = process.env.PARTNER_KEY;
+    const shop_id = tokenInfo.shop_id_list?.[0];
+    const refresh_token = tokenInfo.refresh_token;
+
+    const path = "/api/v2/auth/access_token/get";
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    const baseString = `${partner_id}${path}${timestamp}${refresh_token}${shop_id}`;
+    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
+
+    const url =
+      `https://openplatform.shopee.com.br${path}` +
+      `?partner_id=${partner_id}` +
+      `&timestamp=${timestamp}` +
+      `&sign=${sign}`;
+
+    const body = {
+      shop_id,
+      refresh_token,
+      partner_id,
+    };
+
+    console.log("🔄 Renovando token da Shopee...");
+
+    const response = await axios.post(url, body);
+
+    const novoAccess = response.data.access_token;
+    const novoRefresh = response.data.refresh_token;
+
+    if (!novoAccess) {
+      console.error("❌ Erro ao renovar token:", response.data);
+      return false;
     }
 
-    const data = fs.readFileSync(TOKEN_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error("Erro ao carregar tokens:", err);
-    return null;
-  }
-}
-
-function salvarTokens(tokens) {
-  const data = {
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
-    expires_at: Date.now() + tokens.expires_in * 1000
-  };
-
-  fs.writeFileSync(TOKEN_FILE, JSON.stringify(data, null, 2), 'utf8');
-  console.log("💾 Tokens renovados e salvos com sucesso!");
-}
-
-async function renovarTokens(refresh_token) {
-  console.log("🔄 Renovando tokens com refresh_token:", refresh_token);
-
-  const params = new URLSearchParams();
-  params.append("grant_type", "refresh_token");
-  params.append("client_id", process.env.CLIENT_ID);
-  params.append("client_secret", process.env.CLIENT_SECRET);
-  params.append("refresh_token", refresh_token);
-
-  try {
-    const response = await axios.post(
-      "https://api.mercadolibre.com/oauth/token",
-      params.toString(),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          accept: "application/json"
-        }
-      }
+    // Salva novo tokens.json atualizado
+    fs.writeFileSync(
+      "tokens.json",
+      JSON.stringify(
+        {
+          ...tokenInfo,
+          access_token: novoAccess,
+          refresh_token: novoRefresh,
+        },
+        null,
+        2
+      )
     );
 
-    salvarTokens(response.data);
+    console.log("✅ Tokens renovados com sucesso!");
+    return true;
 
-    return response.data.access_token;
-
-  } catch (error) {
-    console.error("❌ ERRO AO RENOVAR TOKEN:", error.response?.data || error);
-    throw new Error("Falha ao renovar token");
+  } catch (err) {
+    console.error("❌ Erro ao renovar tokens:", err.response?.data || err);
+    return false;
   }
-}
-
-export async function getAccessToken() {
-  const tokens = carregarTokens();
-
-  if (!tokens) {
-    throw new Error("❌ Nenhum tokens.json encontrado! Você precisa gerar o token inicial novamente.");
-  }
-
-  // SE O TOKEN EXPIROU, RENOVA
-  if (!tokens.expires_at || Date.now() >= tokens.expires_at) {
-    console.log("⏰ Token expirado — renovando...");
-    return await renovarTokens(tokens.refresh_token);
-  }
-
-  // SE ESTÁ VÁLIDO, DEVOLVE O TOKEN ATUAL
-  return tokens.access_token;
 }

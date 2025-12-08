@@ -7,6 +7,7 @@ import cors from "cors";
 import RouterRelatorio from "./RelatorioPedidos_Saida.js";
 import RouterPush from "./PushAuth.js";
 import detalhesPedidos from "./DetalhesPedidos.js";
+import { RenovaTokens } from "./RenovaTokensShopee.js";
 
 
 
@@ -114,6 +115,9 @@ app.get("/callback", async (req, res) => {
     res.status(500).send("Erro ao obter token");
   }
 });
+
+RenovaTokens();
+
 
 app.use("/", RouterRelatorio);
 app.use("/notificacoes-shopee", RouterPush);
