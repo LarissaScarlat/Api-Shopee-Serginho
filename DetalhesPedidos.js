@@ -37,6 +37,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
 
+
     // 🔹 Base string correta para consulta
     const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
     const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
