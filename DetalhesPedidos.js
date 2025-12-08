@@ -1,51 +1,98 @@
-import express from "express"; 
+import express from "express";
 import axios from "axios";
 import crypto from "crypto";
 import fs from "fs";
 import { supabase } from "./Supabase.js";
 import { salvarPedidoShopee } from "./SalvarShopeeSupabase.js";
-import { RenovaTokens } from "./RenovaTokens.js";  // <-- você já tinha isso
-
 
 const router = express.Router();
 
 /* ============================================================
-   🔹🔹🔹 ADIÇÃO 1 — MIDDLEWARE PARA RENOVAR TOKENS 🔹🔹🔹
+   🔹 FUNÇÃO PARA RENOVAR ACCESS TOKEN
+============================================================ */
+async function RenovaTokens() {
+  try {
+    console.log("🔄 Verificando validade do access_token...");
+
+    let tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
+    const shop_id = tokenInfo.shop_id;
+    let refresh_token = tokenInfo.refresh_token;
+
+    if (!shop_id || !refresh_token) {
+      console.error("❌ shop_id ou refresh_token inválido");
+      return null;
+    }
+
+    const agora = Math.floor(Date.now() / 1000);
+    if (tokenInfo.expire_at && agora < tokenInfo.expire_at - 300) {
+      console.log("✅ Token ainda válido.");
+      return tokenInfo;
+    }
+
+    console.log("⚠ Token expirado! Renovando...");
+
+    const partner_id = Number(process.env.PARTNER_ID);
+    const partner_key = process.env.PARTNER_KEY;
+    const path = "/api/v2/auth/access_token/get";
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // Base string correta para renovação
+    const baseString = `${partner_id}${path}${timestamp}`;
+    const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
+
+    const url = `https://partner.shopeemobile.com${path}?partner_id=${partner_id}&timestamp=${timestamp}&sign=${sign}`;
+    const body = { shop_id, refresh_token, partner_id };
+
+    const response = await axios.post(url, body, {
+      headers: { "Content-Type": "application/json" }
+    });
+
+    if (response.data.error) {
+      console.error("❌ Erro da Shopee ao renovar token:", response.data);
+      return null;
+    }
+
+    // Salva novo access_token e refresh_token
+    const novoToken = {
+      access_token: response.data.access_token,
+      refresh_token: response.data.refresh_token,
+      expire_in: response.data.expire_in,
+      timestamp,
+      expire_at: timestamp + response.data.expire_in,
+      shop_id
+    };
+
+    fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
+    console.log("✅ Token renovado com sucesso!");
+
+    return novoToken;
+  } catch (err) {
+    console.error("❌ Erro ao renovar token:", err.response?.data || err);
+    return null;
+  }
+}
+
+/* ============================================================
+   🔹 MIDDLEWARE PARA GARANTIR TOKEN ATUALIZADO
 ============================================================ */
 async function garantirToken(req, res, next) {
-  console.log("⏳ Verificando token antes da rota...");
   const tokenInfo = await RenovaTokens();
   if (!tokenInfo) {
-    return res.status(500).json({ error: "Erro ao renovar token" });
+    return res.status(500).json({ error: "Não foi possível renovar o token" });
   }
-  req.access_token = tokenInfo.access_token; // passa para a rota
+  req.access_token = tokenInfo.access_token;
   next();
 }
 
-
 /* ============================================================
-   FUNÇÃO PARA CONSULTAR DETALHES DO PEDIDO NA SHOPEE
+   🔹 FUNÇÃO PARA CONSULTAR DETALHES DO PEDIDO
 ============================================================ */
-async function consultarPedidoShopee(order_sn) {
+async function consultarPedidoShopee(order_sn, access_token) {
   try {
-    console.log("📌 Iniciando consulta Shopee para:", order_sn);
-
-    let tokenInfo;
-    try {
-      tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
-    } catch (e) {
-      console.error("❌ Erro ao ler tokens.json:", e);
-      return { error: "tokens_json_error", detail: e };
-    }
-
+    const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
     const partner_id = Number(process.env.PARTNER_ID);
-    const shop_id = Number(tokenInfo.shop_id_list?.[0]);
-    const access_token = tokenInfo.access_token;
     const partner_key = process.env.PARTNER_KEY;
-
-    if (!partner_id || !shop_id || !access_token || !partner_key) {
-      return { error: "missing_credentials" };
-    }
+    const shop_id = Number(tokenInfo.shop_id);
 
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
@@ -66,51 +113,37 @@ async function consultarPedidoShopee(order_sn) {
         "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
     };
 
-    // 🔹 LOGS PARA DEBUG
     console.log("🔑 Access Token:", access_token);
     console.log("🛒 Shop ID:", shop_id);
     console.log("📦 Order SN:", order_sn);
     console.log("📤 URL da requisição:", url);
-    console.log("📝 Body enviado:", body);
 
-
-    let response;
-    try {
-      response = await axios.post(url, body);
-    } catch (e) {
-      return { error: "http_error", detail: e.response?.data || e };
-    }
-
+    const response = await axios.post(url, body);
     const pedido = response.data.response?.order_list?.[0];
+
     if (!pedido) {
       return { error: "order_not_found", raw: response.data };
     }
 
     return pedido;
-
   } catch (err) {
     return { error: "unexpected_error", detail: err };
   }
 }
 
 /* ============================================================
-   ROTA REAL OFICIAL QUE FALTAVA!!
+   🔹 ROTA PARA BUSCAR PEDIDO
 ============================================================ */
-
-/* 
-   🔹🔹🔹 ADIÇÃO 2 — ADICIONAR O MIDDLEWARE ANTES DA ROTA
-   Ficou assim:
-   router.get("/buscar-pedido/:order_sn", garantirToken, async (...)
-*/
 router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
   const order_sn = req.params.order_sn;
+  const access_token = req.access_token;
 
   console.log("🔎 Consulta manual de pedido:", order_sn);
 
-  const pedido = await consultarPedidoShopee(order_sn);
+  const pedido = await consultarPedidoShopee(order_sn, access_token);
 
-  if (!pedido) {
-    return res.status(404).json({ error: "Pedido não encontrado na Shopee" });
+  if (!pedido || pedido.error) {
+    return res.status(404).json({ error: "Pedido não encontrado na Shopee", detalhe: pedido });
   }
 
   await salvarPedidoShopee(pedido);
@@ -121,7 +154,7 @@ router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
   });
 });
 
-
 export default router;
+
 
 
