@@ -9,7 +9,7 @@ export async function RenovaTokens() {
     // Lê token atual salvo
     const tokenInfo = JSON.parse(fs.readFileSync("tokens.json", "utf8"));
 
-    // shop_id OBRIGATÓRIO
+    // Pega o shop_id correto
     const shop_id = tokenInfo.shop_id || tokenInfo.shop_id_list?.[0];
 
     if (!shop_id) {
@@ -32,16 +32,16 @@ export async function RenovaTokens() {
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // Debug detalhado antes da assinatura
-    console.log("🔑 Valores usados para assinatura:");
+    // Debug para verificar valores
+    console.log("🔑 Valores para assinatura:");
     console.log("partner_id:", process.env.PARTNER_ID);
     console.log("path:", path);
     console.log("timestamp:", timestamp);
     console.log("shop_id:", shop_id);
     console.log("refresh_token:", tokenInfo.refresh_token);
 
-    const baseString = 
-      `${process.env.PARTNER_ID}${path}${timestamp}${tokenInfo.refresh_token}${shop_id}`;
+    // String base para assinatura
+    const baseString = `${process.env.PARTNER_ID}${path}${timestamp}${tokenInfo.refresh_token}${shop_id}`;
 
     const sign = crypto
       .createHmac("sha256", process.env.PARTNER_KEY)
@@ -57,25 +57,23 @@ export async function RenovaTokens() {
       `&sign=${sign}` +
       `&shop_id=${shop_id}`;
 
-    console.log("🌐 URL completa para POST:", url);
-
     const body = {
       refresh_token: tokenInfo.refresh_token,
       partner_id: Number(process.env.PARTNER_ID),
       shop_id: Number(shop_id)
     };
 
+    console.log("🌐 URL completa:", url);
     console.log("📦 Body da requisição:", body);
 
     const response = await axios.post(url, body);
 
     console.log("✅ Resposta da Shopee:", response.data);
 
+    // Atualiza timestamp para controle futuro
     const novoToken = response.data;
-
-    // Atualiza timestamp
     novoToken.timestamp = timestamp;
-    novoToken.shop_id = shop_id; // garante que sempre exista
+    novoToken.shop_id = shop_id;
 
     fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
 
@@ -87,4 +85,3 @@ export async function RenovaTokens() {
     return null;
   }
 }
-
