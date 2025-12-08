@@ -1,4 +1,3 @@
-// RenovaTokensShopee.js
 import fs from "fs";
 import axios from "axios";
 import crypto from "crypto";
@@ -33,7 +32,7 @@ export async function RenovaTokens() {
     const path = "/api/v2/auth/access_token/get";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // ASSINATURA CORRETA SEGUNDO SHOPEE
+    // assinatura correta segundo documentação
     const baseString = 
       `${process.env.PARTNER_ID}${path}${timestamp}${tokenInfo.refresh_token}${shop_id}`;
 
@@ -42,8 +41,9 @@ export async function RenovaTokens() {
       .update(baseString)
       .digest("hex");
 
+    // ❗ URL correta de produção Shopee BR
     const url =
-      `https://openplatform.shopee.com.br${path}` +
+      `https://partner.shopeemobile.com${path}` +
       `?partner_id=${process.env.PARTNER_ID}` +
       `&timestamp=${timestamp}` +
       `&sign=${sign}` +
@@ -61,7 +61,7 @@ export async function RenovaTokens() {
 
     // Atualiza timestamp
     novoToken.timestamp = timestamp;
-    novoToken.shop_id = shop_id; // garantir que sempre exista
+    novoToken.shop_id = shop_id;
 
     fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
 
