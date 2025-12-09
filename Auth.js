@@ -100,8 +100,17 @@ app.get("/callback", async (req, res) => {
 
     console.log("🔐 Token recebido:", tokenData);
 
-    fs.writeFileSync("tokens.json", JSON.stringify(tokenData, null, 2));
-    console.log("💾 Tokens salvos em tokens.json");
+        const novoToken = {
+        partner_id: Number(process.env.PARTNER_ID),
+        shop_id: Number(shop_id),
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expire_at: timestamp + tokenData.expire_in
+      };
+
+      fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
+      console.log("💾 Tokens salvos em tokens.json (formato válido)");
+
 
     res.json({
       message: "Autenticação concluída!",
