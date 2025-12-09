@@ -40,18 +40,12 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const body = {
-      order_sn_list: [order_sn],
-      response_optional_fields:
-        "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
-    };
-
-    const bodyStr = JSON.stringify(body);
-
+    // 🔥 CORREÇÃO PRINCIPAL: assinatura SEM o body!
     const baseString =
-      `${partner_id}${path}${timestamp}${access_token}${shop_id}${bodyStr}`;
+      `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
 
-    const sign = crypto.createHmac("sha256", partner_key)
+    const sign = crypto
+      .createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
@@ -63,15 +57,22 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
       `&access_token=${access_token}` +
       `&shop_id=${shop_id}`;
 
-    const response = await axios.post(url, body);
+    const body = {
+      order_sn_list: [order_sn],
+      response_optional_fields:
+        "recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number"
+    };
 
+    console.log("📤 Consultando pedido:", order_sn);
+
+    const response = await axios.post(url, body);
     const pedido = response.data.response?.order_list?.[0];
+
     if (!pedido) {
       return { error: "order_not_found", detalhe: response.data };
     }
 
     return pedido;
-
   } catch (err) {
     console.error("❌ ERRO AO CONSULTAR PEDIDO NA SHOPEE:");
     console.error("Status:", err.response?.status);
