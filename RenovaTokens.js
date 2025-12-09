@@ -63,14 +63,15 @@ export async function RenovaTokens() {
     console.log("🔐 Nova resposta de token:", data);
 
     const novoToken = {
-      partner_id,
-      shop_id,
-      access_token: data.access_token,
-      refresh_token: data.refresh_token, // ⚠ novo refresh_token!!
-      expire_at: timestamp + data.expire_in
-    };
+  partner_id,
+  shop_id,
+  access_token: data.access_token,
+  refresh_token: data.refresh_token,
+  expire_at: timestamp + data.expire_in
+};
 
-    fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
+fs.writeFileSync("tokens.json", JSON.stringify(novoToken, null, 2));
+
     console.log("💾 Tokens atualizados e salvos!");
 
     return novoToken;
