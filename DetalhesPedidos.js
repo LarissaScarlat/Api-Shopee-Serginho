@@ -40,12 +40,9 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // 🔥 CORREÇÃO PRINCIPAL: assinatura SEM o body!
-    const baseString =
-      `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
-
-    const sign = crypto
-      .createHmac("sha256", partner_key)
+    // 🔥 Assinatura COM base na documentação (SEM o body)
+    const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
+    const sign = crypto.createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
@@ -73,6 +70,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     }
 
     return pedido;
+
   } catch (err) {
     console.error("❌ ERRO AO CONSULTAR PEDIDO NA SHOPEE:");
     console.error("Status:", err.response?.status);
@@ -84,6 +82,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     };
   }
 }
+
 
 
 /* ============================================================
