@@ -5,14 +5,15 @@ export async function salvarPedidoShopee(pedido) {
     const item = pedido.item_list?.[0] || {};
 
     const dados = {
-      orden_sn: pedido.order_sn,
-      order_date: pedido.create_time ? new Date(pedido.create_time * 1000).toISOString() : null,
-      status: pedido.order_status || null,
-      plataforma: "Shopee",
-      deposito: pedido.warehouse_type || null,
-      sku: item.model_sku || item.item_sku || null,
-      titulo_anuncio: item.item_name || null,
-    };
+  order_sn: pedido.order_sn, // <-- AJUSTADO
+  order_date: pedido.create_time ? new Date(pedido.create_time * 1000).toISOString() : null,
+  status: pedido.order_status || null,
+  plataforma: "Shopee",
+  deposito: pedido.warehouse_type || null,
+  sku: item.model_sku || item.item_sku || null,
+  titulo_anuncio: item.item_name || null,
+};
+
 
     console.log("📦 Dados enviados ao Supabase:", dados);
 
