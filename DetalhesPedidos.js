@@ -32,29 +32,22 @@ async function garantirToken(req, res, next) {
 /* ============================================================
    🔹 Função que consulta pedido na Shopee
 ============================================================ */
-/* ============================================================
-   🔹 Função que consulta pedido na Shopee (CORRIGIDA)
-============================================================ */
 async function consultarPedidoShopee(order_sn, access_token, shop_id) {
   try {
     const partner_id = Number(process.env.PARTNER_ID);
     const partner_key = process.env.PARTNER_KEY;
 
-    // 🔥 CORRETO (servidor oficial da API)
-    const HOST = "https://partner.shopeemobile.com";
-
     const path = "/api/v2/order/get_order_detail";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // 🔐 Assinatura CORRETA
+    // 🔥 Assinatura COM base na documentação (SEM o body)
     const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
+    const sign = crypto.createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
     const url =
-      `${HOST}${path}` +
+      `https://openplatform.shopee.com.br${path}` +
       `?partner_id=${partner_id}` +
       `&timestamp=${timestamp}` +
       `&sign=${sign}` +
@@ -89,7 +82,6 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
     };
   }
 }
-
 
 
 
