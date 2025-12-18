@@ -38,7 +38,7 @@ export async function RenovaTokens() {
       .digest("hex");
 
     const url =
-      `https://partner.shopeemobile.com.br${path}` +
+      `https://partner.shopeemobile.com${path}` +
       `?partner_id=${partner_id}` +
       `&timestamp=${timestamp}` +
       `&sign=${sign}`;
