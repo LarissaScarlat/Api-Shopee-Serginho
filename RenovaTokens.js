@@ -19,7 +19,7 @@ export async function RenovaTokens() {
     const agora = Math.floor(Date.now() / 1000);
 
     // Se ainda estiver válido (faltando mais de 5 min)
-    if (agora < expire_at - 300) {
+    if (access_token && agora < expire_at - 300) {
       console.log("✅ Token ainda válido.");
       return tokenInfo;
     }
