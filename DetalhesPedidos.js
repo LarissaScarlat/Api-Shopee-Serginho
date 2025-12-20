@@ -58,7 +58,7 @@ async function consultarPedidoShopee(order_sn, access_token, shop_id) {
       `&access_token=${access_token}` +
       `&sign=${sign}` +
       `&shop_id=${shop_id}` +
-      `&order_sn_list=${order_sn}`
+      `&order_sn_list=${order_sn}` +
       `&response_optional_fields=recipient_address,item_list,payment_method,pay_time,shipping_carrier,tracking_number`;
 
     console.log("📤 Consultando pedido:", order_sn);
