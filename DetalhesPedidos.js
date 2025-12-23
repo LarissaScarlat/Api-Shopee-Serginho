@@ -104,11 +104,7 @@ router.get("/buscar-pedido/:order_sn", garantirToken, async (req, res) => {
   }
 
   console.log("✅ Pedido encontrado:", pedido.order_sn);
-
-  // Salvar no Supabase
-  await salvarPedidoShopee(pedido);
-
-  return res.json({ mensagem: "Pedido salvo no Supabase", pedido });
+  return res.json(pedido);
 });
 
 export { consultarPedidoShopee };
