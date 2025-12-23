@@ -1,6 +1,7 @@
 import { supabase } from "./Supabase.js";
+import {consultarPedidoShopee} from "./DetalhesPedidos.js";
 
-export async function salvarPedidoShopee(pedido) {
+export async function consultarPedidoShopee(pedido) {
   try {
     // -----------------------------
     // 1️⃣ Aceitar somente pedidos válidos
